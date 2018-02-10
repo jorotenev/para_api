@@ -5,7 +5,6 @@ import os
 class BaseConfig(object):
 
     TESTING = False
-    DEBUG = False
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
     CI = False # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
@@ -16,12 +15,10 @@ class BaseConfig(object):
 
 
 class DevelopmentConfig(BaseConfig):
-    DEBUG = True
- 
+
     @staticmethod
     def init_app(app):
         pass
-
 
 
 class TestingConfig(DevelopmentConfig):
@@ -33,7 +30,6 @@ class TestingConfig(DevelopmentConfig):
 
 
 class StagingConfig(BaseConfig):
-
     CI = True
 
     @staticmethod

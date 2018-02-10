@@ -1,6 +1,7 @@
 from app.api_utils.response import make_json_response
 from . import api
-from flask import Response
+from requests import get
+import os
 
 
 @api.route("/ping")
@@ -16,3 +17,10 @@ def test_500():
 @api.route('/test-200')
 def test_200():
     return make_json_response('{"content": "rebra"}')
+
+
+@api.route('/test-internet')
+def internet():
+    resp = get("http://api.yomomma.info/")
+    print(resp.text.capitalize())
+    return resp.text.capitalize()
