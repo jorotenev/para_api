@@ -1,7 +1,5 @@
 from flask import Flask
 from config import config
-# from datetime import datetime
-from flask_bootstrap import Bootstrap
 
 
 def _base_app(config_name):
@@ -13,11 +11,8 @@ def _base_app(config_name):
     :arg config_name [string] - the name of the environment; must be a key in the "config" dict
     """
     app = Flask(__name__)
-    Bootstrap(app)
     app.config.from_object(config[config_name])
     config[config_name].init_app(app)
-
-    # app.jinja_env.globals['datetime'] = datetime
 
     return app
 
@@ -32,12 +27,11 @@ def create_app(config_name):
     from .api import api as api_blueprint
     from .expenses_api import expenses_api as expenses_api_blueprint
     from .auth_api import auth_api as auth_api_blueprint
+
     api_version = 'v1'
     app.register_blueprint(main_blueprint)
     app.register_blueprint(api_blueprint, url_prefix="/api")
     app.register_blueprint(auth_api_blueprint, url_prefix="/auth_api/%s" % api_version)
     app.register_blueprint(expenses_api_blueprint, url_prefix="/expenses_api/%s" % api_version)
-
-    # register other blueprints below
 
     return app

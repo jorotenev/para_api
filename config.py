@@ -1,12 +1,16 @@
 # config.py
 import os
+from os.path import join, dirname
+from dotenv import load_dotenv
+
+dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
+load_dotenv(dotenv_path)
 
 
 class BaseConfig(object):
-
     TESTING = False
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
-    CI = False # are we in a continuous integration environment
+    CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
 
     @staticmethod

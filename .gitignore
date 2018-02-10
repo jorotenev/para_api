@@ -1,3 +1,4 @@
+.env_dev
 .aws_para_config/
 app/static/gen/
 *.webassets-cache

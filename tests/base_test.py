@@ -9,15 +9,19 @@ if am_i_in_ci:
 
 
 class BaseTest(unittest.TestCase):
-    # when writing a test class, extend this class
+    # on class creation
+    @classmethod
+    def setUpClass(cls):
+        pass
+
+    @classmethod
+    def tearDownClass(cls):
+        pass
 
     def setUp(self):
-        if am_i_in_ci:
-            self.app = create_app('staging')
-            print("Running tests in staging environment")
-        else:
-            self.app = create_app('testing')
-            print("Running tests in testing environment")
+        env = 'staging' if am_i_in_ci else "testing"
+        self.app = create_app(env)
+        print("Running tests in %s environment" % env)
 
         # this is needed to make url_for work
         self.app.config['SERVER_NAME'] = 'localhost'
@@ -28,13 +32,9 @@ class BaseTest(unittest.TestCase):
         # the client acts as a client browser - it can make requests to our app as if a client is making them
         self.client = self.app.test_client(use_cookies=True)
 
-    def tearDown(self):
-        self.app_context.pop()
 
-    # on class creation
-    @classmethod
-    def setUpClass(cls):
-        pass
+def tearDown(self):
+    self.app_context.pop()
 
 
 class BaseTestWithHTTPMethods(BaseTest):

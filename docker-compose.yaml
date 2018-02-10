@@ -8,5 +8,5 @@ web:
     - "5000"
   volumes:
     - .:/usr/src/app/
-  env_file: .env
-  command: flask run
+  env_file: .env_dev
+  command: flask test
