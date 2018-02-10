@@ -32,7 +32,6 @@ class BaseTest(unittest.TestCase):
         # the client acts as a client browser - it can make requests to our app as if a client is making them
         self.client = self.app.test_client(use_cookies=True)
 
-
     def tearDown(self):
         self.app_context.pop()
 
@@ -45,8 +44,8 @@ class BaseTestWithHTTPMethods(BaseTest):
     def post(self, url, data, url_args={}):
         return self.full_response(method='POST', data=data, url=url, url_args=url_args).get_data(as_text=True)
 
-    def get(self, url):
-        return self.full_response(url=url).get_data(as_text=True)
+    def get(self, url, **kwargs):
+        return self.full_response(url=url, **kwargs).get_data(as_text=True)
 
     def full_response(self, method='GET', data={}, url="", url_args={}):
         """
@@ -60,7 +59,8 @@ class BaseTestWithHTTPMethods(BaseTest):
         common_args = [url_for(url, _external=True)]
         common_kwargs = {
             "follow_redirects": True,
-            "query_string": url_args
+            "query_string": url_args,
+            'headers': []  # [('Content-Type', 'text/html; charset=utf-8'),]
         }
 
         if method == 'POST':

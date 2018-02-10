@@ -15,7 +15,7 @@ from datetime import datetime as dt, timezone as tz
 #         "vacation",
 #         "work"
 #     ],
-#     "timestamp_utc": "2017-10-29T09:18:21.853071"
+#     "timestamp_utc": "2018-02-10T18:55:40.561052+00:00"
 # }
 MAX_ID = 50
 
