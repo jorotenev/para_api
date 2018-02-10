@@ -33,8 +33,8 @@ class BaseTest(unittest.TestCase):
         self.client = self.app.test_client(use_cookies=True)
 
 
-def tearDown(self):
-    self.app_context.pop()
+    def tearDown(self):
+        self.app_context.pop()
 
 
 class BaseTestWithHTTPMethods(BaseTest):
