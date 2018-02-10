@@ -9,4 +9,4 @@ web:
   volumes:
     - .:/usr/src/app/
   env_file: .env
-  command: python manage.py runserver
+  command: flask run
