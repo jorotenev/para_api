@@ -1,3 +1,4 @@
+.aws_para_config/
 app/static/gen/
 *.webassets-cache
 districtrank.pid
