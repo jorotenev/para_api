@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from app.models.expense import ExpenseValidator, ValidatorErrorPrefix
+from app.models.expense_validation import ExpenseValidator, ValidatorErrorPrefix
 from tests.base_test import BaseTest
 
 valid_expense = {

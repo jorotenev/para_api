@@ -1,4 +1,4 @@
-from app.models.expense import ExpenseValidator
+from app.models.expense_validation import ExpenseValidator
 
 
 def currentDay():

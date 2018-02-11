@@ -1,24 +1,5 @@
-import os, sys
-from dateutil import parser
 from jsonschema import validate, ValidationError
-
-from app.helpers.currencies import currencies
 from app.models.json_schema import expense_schema
-
-
-def is_valid_utc_timestamp(cand):
-    try:
-        parsed = parser.parse(cand)
-        return parsed.tzname() == "UTC"
-    except ValueError:
-        return False
-
-
-def is_number(v):
-    try:
-        return type(float(str(v))) == float
-    except:
-        return False
 
 
 class ValidatorErrorPrefix:
@@ -33,9 +14,8 @@ class ExpenseValidator:
     @staticmethod
     def validate(exp):
         """
-
         :param exp: a dictionary.
-        :return: a tuple. if exp was valid, (True, ""), if invalid, (False, "<msg>"]
+        :return: a tuple. if exp was valid, (True, ""), if invalid, (False, "<msg>") where msg is formatted via ValidateErrorPrefix
         """
 
         is_valid = True
