@@ -26,10 +26,12 @@ MAXIMUM_BATCH_SIZE = 100
 class ApiError:
     BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
     INVALID_QUERY_PARAMS = "Invalid URL query parameters"
-    NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id account"
+    NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id in this account"
+    ID_PROPERTY_FORBIDDEN = "The id property MUST be null"
+    INVALID_EXPENSE = "The expense doesn't match the expected format"
 
 
-@expenses_api.route("/get_expenses_list")
+@expenses_api.route("/get_expenses_list", methods=['GET'])
 def get_expenses_list():
     start_id = request.args.get('start_id', type=int, default=MAX_ID)
     start_id = min(start_id, MAX_ID)  # TODO
@@ -54,6 +56,26 @@ def get_expenses_list():
     return make_json_response(response)
 
 
-@expenses_api.route("/get_expense_by_id/<int:expense_id>")
+@expenses_api.route("/get_expense_by_id/<int:expense_id>", methods=['GET'])
 def get_expense_by_id(expense_id):
     return ""
+
+
+@expenses_api.route('/persist', methods=['POST'])
+def persist():
+    return ''
+
+
+@expenses_api.route('/update', methods=['PUT'])
+def update():
+    return ''
+
+
+@expenses_api.route('/remove', methods=['DELETE'])
+def remove():
+    return ''
+
+
+@expenses_api.route('/sync', methods=['GET'])
+def sync():
+    return ''

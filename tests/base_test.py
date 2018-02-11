@@ -1,6 +1,6 @@
 import unittest, os
 from app import create_app
-from flask import url_for
+from flask import url_for, Response
 
 # usually, continuous integration providers set the CI env variable
 am_i_in_ci = os.environ.get("CI", False)
@@ -47,7 +47,14 @@ class BaseTestWithHTTPMethods(BaseTest):
     def get(self, url, **kwargs):
         return self.full_response(url=url, **kwargs)
 
-    def full_response(self, method='GET', data={}, url="", url_args={}, url_for_args={}, raw_response=True, headers={}):
+    def put(self, **kwargs):
+        return self.full_response(method='PUT', **kwargs)
+
+    def delete(self, **kwargs):
+        return self.full_response(method='DELETE', **kwargs)
+
+    def full_response(self, method='GET', data={}, url="", url_args={}, url_for_args={}, raw_response=True,
+                      headers={}) -> Response:
         """
         :arg method [str] - the name of the http method
         :arg data [dict] - a dict with the payload
@@ -61,17 +68,17 @@ class BaseTestWithHTTPMethods(BaseTest):
         """
         common_args = [url_for(url, **url_for_args, _external=True)]
         common_kwargs = {
+            "data": data,
             "follow_redirects": True,
             "query_string": url_args,
             'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]
         }
-
-        if method == 'POST':
-            res = self.client.post(*common_args, data=data, **common_kwargs)
-        elif method == 'GET':
-            res = self.client.get(*common_args, **common_kwargs)
-        else:
-            raise Exception("unknown method %s" % method)
+        method_name = method.lower()
+        print('calling %s' % method_name)
+        method = getattr(self.client, method_name)
+        if not method:
+            raise Exception("unknown method %s" % method_name)
+        res = method(*common_args, **common_kwargs)
 
         if not raw_response:
             res = res.get_data(as_text=True)
