@@ -15,7 +15,7 @@ class TestGETExpensesList(BaseTestWithHTTPMethods):
 
         ids = [exp['id'] for exp in json_resp]
         self.assertEqual(ids, list(sorted(ids, reverse=True)), "Result should be sorted by id descendigly")
-        self.assert(ids[0], ids[1], 'The first result should be with the highest id')
+        self.assertTrue(ids[0] > ids[1], 'The first result should be with the highest id')
 
         self.assertTrue(all([is_valid_expense(exp) for exp in json_resp]),
                         "All returned objects must be valid expenses")
