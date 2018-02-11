@@ -17,13 +17,22 @@ from datetime import datetime as dt, timezone as tz
 #     ],
 #     "timestamp_utc": "2018-02-10T18:55:40.561052+00:00"
 # }
+
+
 MAX_ID = 50
+MAXIMUM_BATCH_SIZE = 100
+
+
+class ApiError:
+    BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
+    INVALID_QUERY_PARAMS = "Invalid URL query parameters"
+    NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id account"
 
 
 @expenses_api.route("/get_expenses_list")
 def get_expenses_list():
     start_id = request.args.get('start_id', type=int, default=MAX_ID)
-    start_id = min(start_id, MAX_ID)
+    start_id = min(start_id, MAX_ID)  # TODO
     batch_size = request.args.get('batch_size', type=int, default=10)
 
     response = []
@@ -43,3 +52,8 @@ def get_expenses_list():
 
     response.sort(key=lambda expense: expense['id'], reverse=True)
     return make_json_response(response)
+
+
+@expenses_api.route("/get_expense_by_id/<int:expense_id>")
+def get_expense_by_id(expense_id):
+    return ""

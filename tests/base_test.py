@@ -41,31 +41,38 @@ class BaseTestWithHTTPMethods(BaseTest):
     Class to be subclassed when doing client testing.
     """
 
-    def post(self, url, data, url_args={}):
-        return self.full_response(method='POST', data=data, url=url, url_args=url_args).get_data(as_text=True)
+    def post(self, url, data, url_args={}, **kwargs):
+        return self.full_response(method='POST', data=data, url=url, url_args=url_args, **kwargs)
 
     def get(self, url, **kwargs):
-        return self.full_response(url=url, **kwargs).get_data(as_text=True)
+        return self.full_response(url=url, **kwargs)
 
-    def full_response(self, method='GET', data={}, url="", url_args={}):
+    def full_response(self, method='GET', data={}, url="", url_args={}, url_for_args={}, raw_response=True, headers={}):
         """
-        :arg method [bool] - are we doing a POST request
+        :arg method [str] - the name of the http method
         :arg data [dict] - a dict with the payload
         :arg url  [string] - endpoint (NOT a ready url) e.g. main.index and *not* just /
-        :arg url_args - these will be passed as url arguments - e.g. in /user&id=1 id=1 would have been made by url_args={'id':1}
-
+        :arg url_args - these will be passed as url query arguments:
+            e.g. in /user&id=1 id=1 would have been made by url_args={'id':1}
+        :arg raw_response [boolean] - if false, the return value of this method will be the text response from the server;
+            otherwise the raw response
+        :arg url_for_args [dict] - will be passed to url_for when building the url for the endpoint
         :returns the data of the response (e.g. the return of the view function of the server)
         """
-        common_args = [url_for(url, _external=True)]
+        common_args = [url_for(url, **url_for_args, _external=True)]
         common_kwargs = {
             "follow_redirects": True,
             "query_string": url_args,
-            'headers': []  # [('Content-Type', 'text/html; charset=utf-8'),]
+            'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]
         }
 
         if method == 'POST':
-            return self.client.post(*common_args, data=data, **common_kwargs)
+            res = self.client.post(*common_args, data=data, **common_kwargs)
         elif method == 'GET':
-            return self.client.get(*common_args, **common_kwargs)
+            res = self.client.get(*common_args, **common_kwargs)
         else:
             raise Exception("unknown method %s" % method)
+
+        if not raw_response:
+            res = res.get_data(as_text=True)
+        return res
