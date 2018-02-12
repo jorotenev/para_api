@@ -70,19 +70,19 @@ def get_expense_by_id(expense_id):
 
 @expenses_api.route('/persist', methods=['POST'])
 def persist():
-    return ''
+    return '{}'
 
 
 @expenses_api.route('/update', methods=['PUT'])
 def update():
-    return ''
+    return '{}'
 
 
-@expenses_api.route('/remove', methods=['DELETE'])
-def remove():
-    return ''
+@expenses_api.route('/remove/<int:expense_id>', methods=['DELETE'])
+def remove(expense_id):
+    return '{}'
 
 
 @expenses_api.route('/sync', methods=['GET'])
 def sync():
-    return ''
+    return '{}'

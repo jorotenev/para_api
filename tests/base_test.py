@@ -3,6 +3,8 @@ from app import create_app
 from flask import url_for, Response
 
 # usually, continuous integration providers set the CI env variable
+from tests.common_methods import TESTER_USER_FIREBASE_UID
+
 am_i_in_ci = os.environ.get("CI", False)
 if am_i_in_ci:
     print("CI environment detected")
@@ -40,6 +42,7 @@ class BaseTestWithHTTPMethods(BaseTest):
     """
     Class to be subclassed when doing client testing.
     """
+    firebase_uid = TESTER_USER_FIREBASE_UID
 
     def post(self, url, data, url_args={}, **kwargs):
         return self.full_response(method='POST', data=data, url=url, url_args=url_args, **kwargs)

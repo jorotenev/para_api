@@ -1,18 +1,3 @@
-class NoSuchUser(Exception):
-    """
-    Raised when an operation was performed using an uid, but there's no
-    user with such uid
-    """
-
-    def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
-
-
-class NoExpenseWithThisId(Exception):
-    def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
-
-
 class __DbFacade(object):
     def __init__(self):
         self.db_url = None
@@ -20,6 +5,15 @@ class __DbFacade(object):
     def init_app(self, app):
         self.db_url = app.config.get("DB_URL")
         print("db url set to %s " % self.db_url)
+
+    def get_single(self, expense_id, user_id):
+        """
+
+        :param expense_id:
+        :param user_id:
+        :return: the expense object
+        :raises NoExpenseWithThisId
+        """
 
     def get_list(self, start_id, user_uid, batch_size):
         """
@@ -31,6 +25,14 @@ class __DbFacade(object):
         """
         batch_size = min(batch_size, MAX_BATCH_SIZE)
         return None
+
+    def persist(self, expense, user_uid):
+        """
+
+        :param expense: expense with `id` parameter set to None
+        :param user_uid:
+        :return: the persisted expense
+        """
 
     def update(self, expense, user_uid):
         """
@@ -79,6 +81,21 @@ class __DbFacade(object):
 
     def asd(self):
         return self.db_url
+
+
+class NoSuchUser(Exception):
+    """
+    Raised when an operation was performed using an uid, but there's no
+    user with such uid
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(Exception, self).__init__(*args, **kwargs)
+
+
+class NoExpenseWithThisId(Exception):
+    def __init__(self, *args, **kwargs):
+        super(Exception, self).__init__(*args, **kwargs)
 
 
 MAX_BATCH_SIZE = 100

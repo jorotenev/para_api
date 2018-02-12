@@ -2,6 +2,8 @@ from tests.base_test import BaseTestWithHTTPMethods
 from flask import current_app
 from unittest.mock import patch, MagicMock
 
+from tests.common_methods import SINGLE_EXPENSE
+
 
 class ExampleTest(BaseTestWithHTTPMethods):
     def test_sample(self):
@@ -40,3 +42,21 @@ class DemoTestPatched(BaseTestWithHTTPMethods):
     def test_type(self, mocked_db_facade):
         from app.api.views import db_facade
         self.assertEqual(str(MagicMock), str(type(db_facade.asd)))
+
+
+class DeepEquality(BaseTestWithHTTPMethods):
+    def test_deep_equal(self):
+        copy = SINGLE_EXPENSE.copy()
+        copy['id'] = 1000
+        copy2 = SINGLE_EXPENSE.copy()
+        copy2['id'] = 1000
+        self.assertEqual([copy, 'asd'], [copy2, 'asd'])
+
+
+@patch('app.api.views.db_facade', autospec=True)
+class TestRaises(BaseTestWithHTTPMethods):
+    def test_raises(self, mocked_db):
+        mocked_db.get_list.side_effect = KeyError('booom')
+        start_id = 1
+        batch_size = 1
+        self.assertRaises(KeyError, mocked_db.get_list, start_id, batch_size, 'uid')

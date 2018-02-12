@@ -1,4 +1,5 @@
 from tests.base_test import BaseTestWithHTTPMethods
+
 from flask import current_app
 # from app.expenses_api.views import db_facade
 

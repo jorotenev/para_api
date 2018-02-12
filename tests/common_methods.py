@@ -2,7 +2,7 @@ from app.models.expense_validation import ExpenseValidator
 from app.models.sample_expenses import sample_expenses
 
 SINGLE_EXPENSE = sample_expenses[0]
-
+TESTER_USER_FIREBASE_UID = 'my fake uid'
 
 def currentDay():
     from datetime import datetime as DT
