@@ -2,8 +2,10 @@ import json
 from flask import request
 
 from app.api_utils.response import make_json_response
+from app.db_facade.facade import MAX_BATCH_SIZE
 from . import expenses_api
 from datetime import datetime as dt, timezone as tz
+from app.db_facade import db_facade
 
 # {
 #     "id": 10,
@@ -20,7 +22,7 @@ from datetime import datetime as dt, timezone as tz
 
 
 MAX_ID = 50
-MAXIMUM_BATCH_SIZE = 100
+MAXIMUM_BATCH_SIZE = MAX_BATCH_SIZE
 
 
 class ApiError:
@@ -29,6 +31,11 @@ class ApiError:
     NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id in this account"
     ID_PROPERTY_FORBIDDEN = "The id property MUST be null"
     INVALID_EXPENSE = "The expense doesn't match the expected format"
+
+
+@expenses_api.route("/test", methods=['GET'])
+def test():
+    return 'asd' + str(db_facade.asd())
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])

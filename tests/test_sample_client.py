@@ -1,9 +1,42 @@
 from tests.base_test import BaseTestWithHTTPMethods
 from flask import current_app
+from unittest.mock import patch, MagicMock
 
 
 class ExampleTest(BaseTestWithHTTPMethods):
     def test_sample(self):
         config = current_app.config
-        response = self.get('api.ping')
+        response = self.get('api.ping', raw_response=False)
         self.assertIn('pong', response, "The HTML of the index page doesn't contain expected text")
+
+    @patch('app.api.views.db_facade', autospec=True)
+    def test_mock(self, mocked_facade):
+        mocked_facade.asd.return_value = 'booom :)'
+        raw_resp = self.get('api.test')
+        assert raw_resp.status_code == 200
+        self.assertTrue(mocked_facade.asd.called, 'the mock wasn\'t called')
+        self.assertEqual('booom :)', raw_resp.get_data(as_text=True))
+
+
+@patch('app.api.views.db_facade', autospec=True)
+class DemoTestPatched(BaseTestWithHTTPMethods):
+    """
+    mocked is reset for each test_
+    """
+
+    def test_some(self, mocked_db_facade):
+        mocked_db_facade.asd.return_value = 'asd'
+        self.get('api.test')
+
+        self.assertEqual(1, mocked_db_facade.asd.call_count)
+
+    def test_some_more(self, mocked_db_facade):
+        mocked_db_facade.asd.return_value = 'boo'
+        resp = self.get('api.test')
+
+        self.assertEqual('boo', resp.get_data(as_text=True))
+        self.assertEqual(1, mocked_db_facade.asd.call_count)
+
+    def test_type(self, mocked_db_facade):
+        from app.api.views import db_facade
+        self.assertEqual(str(MagicMock), str(type(db_facade.asd)))

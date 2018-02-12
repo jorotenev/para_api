@@ -1,8 +1,10 @@
 from tests.base_test import BaseTestWithHTTPMethods
 from flask import current_app
+# from app.expenses_api.views import db_facade
 
 
 class ExampleTest(BaseTestWithHTTPMethods):
+
     def test_sample(self):
         config = current_app.config
         response = self.get('api.ping', raw_response=False)

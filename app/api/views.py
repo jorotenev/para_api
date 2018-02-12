@@ -1,3 +1,4 @@
+from app import db_facade
 from app.api_utils.response import make_json_response
 from . import api
 from requests import get
@@ -7,6 +8,11 @@ import os
 @api.route("/ping")
 def ping():
     return "pong"
+
+
+@api.route('/test')
+def test():
+    return db_facade.asd()
 
 
 @api.route('/test-500')
