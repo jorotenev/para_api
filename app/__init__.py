@@ -1,5 +1,6 @@
 from flask import Flask
 from config import config
+from app.db_facade import db_facade
 
 
 def _base_app(config_name):
@@ -22,7 +23,7 @@ def create_app(config_name):
     creates the Flask app.
     """
     app = _base_app(config_name=config_name)
-
+    db_facade.init_app(app)
     from .main import main as main_blueprint
     from .api import api as api_blueprint
     from .expenses_api import expenses_api as expenses_api_blueprint
