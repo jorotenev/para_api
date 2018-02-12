@@ -1,20 +1,21 @@
 # Endpoints
 `/expenses_api/<api version>`
 ## v1
-All endpoints expect a x-firebase-auth header with the firebase auth token as a value.
+> All endpoints expect a `x-firebase-auth header` with the firebase auth token as a value.
 
-* **GET** `/get_expenses_list?start_id=<int>&batch_size=<int>&sort_by=<str>`
+* **GET** `/get_expenses_list?start_id=<int>&batch_size=<int>`
+  Gets a list of expenses from newer-to-older order.
   *  parameters
      * `?start_id` - id, of the same type as the id type of the app (`export type ExpenseIdType`). there isn't necesserily an actual expense with this id on the server (e.g. it might have been deleted) but the search will start from this id. Optional. If omitted, the other parameters will be used to determine the first expense in the response.
      * `?batch_size` - the __maximum__ size of the response. Optional. Default 10
-     * `?sort_by` - one of `["date_descending"|"date_ascending"]`. Optional. Default `"date_descending`
+
   * `200` on successfull response
     ```
     [ {<Expense Object>}* ]
-    ``` 
+    ```
   * 400 on malformed request
     ```{error: "<reason>"}```
-   
+
 * __GET__ `/get_expense_by_id/<int>`
   * `200` on expense found
   ```{<Expense object>}```
@@ -40,3 +41,21 @@ All endpoints expect a x-firebase-auth header with the firebase auth token as a 
     * `200` on successful deletion
     * `404` if no such expense / not authorized to delete this expense
   `{msg: "<reason>"}`
+* __GET__ `/sync`
+    * payload
+      ```
+       [
+         {
+           id: <int>,
+           timestamp_utc_updated: <timestamp_utc>
+         },*
+       ]
+       ```
+    * response
+        ```
+            {
+              "to_add": [<Expense object>],
+              "to_remove": [<id>],
+              "to_update": [<Expense object>]
+            }
+        ```
