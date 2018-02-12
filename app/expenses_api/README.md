@@ -13,9 +13,10 @@
     ```
     [ {<Expense Object>}* ]
     ```
-  * 400 on malformed request
+  * `400` on malformed request
     ```{error: "<reason>"}```
-
+  * `413` if the `batch_size` is too large
+   ```{error: "<ApiError.BATCH_SIZE_EXCEEDED>"}```
 * __GET__ `/get_expense_by_id/<int>`
   * `200` on expense found
   ```{<Expense object>}```
@@ -35,8 +36,7 @@
   `{error: "<reason>"}`
   * `404` on expense with such id not found or not authorized to update this expense
   `{error: "<reason>"}`
-* __DELETE__ `/remove`
-  * payload `{id: <int>}`
+* __DELETE__ `/remove/<expense_id:int>`
   * response
     * `200` on successful deletion
     * `404` if no such expense / not authorized to delete this expense
@@ -52,6 +52,7 @@
        ]
        ```
     * response
+      * `200`
         ```
             {
               "to_add": [<Expense object>],
@@ -59,3 +60,4 @@
               "to_update": [<Expense object>]
             }
         ```
+      * `400` on invalid request
