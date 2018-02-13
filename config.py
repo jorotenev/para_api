@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
 load_dotenv(dotenv_path, verbose=True)
+local_dynamodb_url = 'http://localhost:8000'
 
 
 class BaseConfig(object):
@@ -16,39 +17,43 @@ class BaseConfig(object):
     CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
 
-    @staticmethod
-    def init_app(app):
+    @classmethod
+    def init_app(cls, app):
         pass
 
 
 class DevelopmentConfig(BaseConfig):
+    LOCAL_DYNAMODB_URL = local_dynamodb_url
 
-    @staticmethod
-    def init_app(app):
-        pass
+    @classmethod
+    def init_app(cls, app):
+        super(DevelopmentConfig, cls).init_app(app)
 
 
 class TestingConfig(DevelopmentConfig):
+    LOCAL_DYNAMODB_URL = local_dynamodb_url
+
     TESTING = True
     CI = os.environ.get("CI", False)
 
-    @staticmethod
-    def init_app(app):
-        pass
+    @classmethod
+    def init_app(cls, app):
+        super(TestingConfig, cls).init_app(app)
+
 
 
 class StagingConfig(BaseConfig):
 
-    @staticmethod
-    def init_app(app):
-        pass
+    @classmethod
+    def init_app(cls, app):
+        super(StagingConfig, cls).init_app(app)
 
 
 class ProductionConfig(BaseConfig):
 
-    @staticmethod
-    def init_app(app):
-        pass
+    @classmethod
+    def init_app(cls, app):
+        super(ProductionConfig, cls).init_app(app)
 
 
 class EnvironmentName:

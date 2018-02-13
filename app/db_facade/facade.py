@@ -1,14 +1,40 @@
+import boto3
+
+from app.helpers.utils import deadline
+from config import EnvironmentName
+from .dynamodb.dynamodb import dynamodb
+
+
 class __DbFacade(object):
     def __init__(self):
         self.db_url = None
 
     def init_app(self, app):
-        self.db_url = app.config.get("DB_URL")
-        print("db url set to %s " % self.db_url)
+        global dynamodb
+        kwargs = {}
+        if app.config['APP_STAGE'] in [EnvironmentName.development, EnvironmentName.testing]:
+            local_dynamodb_url = app.config['LOCAL_DYNAMODB_URL']
+            kwargs['endpoint_url'] = local_dynamodb_url
+
+        dynamodb = boto3.resource('dynamodb', **kwargs)
+        self.ping_db(dynamodb)
+
+    @deadline(3)
+    def ping_db(self, db):
+
+        """
+        makes a simple request to dynamodb to ensure that there's connectivity. will fail fast if there isn't
+        :return:
+        :raises Exception - if the db is not available
+        """
+        try:
+            len(list(db.tables.all()))
+            print("valid connection to the DynamoDB. Endpoint url [%s]" % db.meta.client.meta.endpoint_url)
+        except Exception as err:
+            raise Exception("DB not ready. raw error: " + str(err))
 
     def get_single(self, expense_id, user_id):
         """
-
         :param expense_id:
         :param user_id:
         :return: the expense object

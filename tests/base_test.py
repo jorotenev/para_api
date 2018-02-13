@@ -1,9 +1,8 @@
 import unittest, os
 from app import create_app
-
 from flask import url_for, Response
-
 # usually, continuous integration providers set the CI env variable
+from config import EnvironmentName
 from tests.common_methods import TESTER_USER_FIREBASE_UID
 
 
@@ -11,10 +10,8 @@ class BaseTest(unittest.TestCase):
     # on class creation
     @classmethod
     def setUpClass(cls):
-        env = os.environ['APP_STAGE']
-
-        cls.app = create_app(config_name=env)
-        print("Running tests in %s environment" % env)
+        cls.app = create_app(config_name=EnvironmentName.testing)
+        print("Running tests in environment")
 
         # this is needed to make url_for work
         cls.app.config['SERVER_NAME'] = 'localhost'
