@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import click
+import sys
 
 from app import create_app
 
@@ -21,10 +22,15 @@ app = create_app(app_mode)
               help='Run tests under code coverage.')
 def test(coverage):
     """Run the unit tests."""
+    with app.app_context():
+        from flask import current_app as c
+        print('OPAAA' + c.config['APP_STAGE'])
 
-    import unittest
-    tests = unittest.TestLoader().discover('tests')
-    unittest.TextTestRunner(verbosity=2).run(tests)
+
+        import unittest
+        tests = unittest.TestLoader().discover('tests')
+        result = unittest.TextTestRunner(verbosity=2).run(tests)
+        sys.exit(not result.wasSuccessful())
 
 
 if __name__ == '__main__':

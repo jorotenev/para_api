@@ -29,7 +29,8 @@ def create_app(config_name):
     from .expenses_api import expenses_api as expenses_api_blueprint
     from .auth_api import auth_api as auth_api_blueprint
 
-    api_version = 'v1'
+    api_version = app.config['EXPENSES_API_VERSION']
+    print("Expenses API version %s " % api_version)
     app.register_blueprint(main_blueprint)
     app.register_blueprint(api_blueprint, url_prefix="/api")
     app.register_blueprint(auth_api_blueprint, url_prefix="/auth_api/%s" % api_version)

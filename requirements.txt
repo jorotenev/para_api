@@ -2,3 +2,4 @@ Flask==0.12.2
 requests
 python-dotenv
 jsonschema
+boto3==1.5.25

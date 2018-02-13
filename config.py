@@ -8,6 +8,8 @@ load_dotenv(dotenv_path)
 
 
 class BaseConfig(object):
+    EXPENSES_API_VERSION = 'v1'
+    APP_STAGE = os.environ['APP_STAGE']
     TESTING = False
     DB_URL = os.environ['DB_URL']
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
@@ -28,6 +30,7 @@ class DevelopmentConfig(BaseConfig):
 
 class TestingConfig(DevelopmentConfig):
     TESTING = True
+    CI = os.environ.get("CI", False)
 
     @staticmethod
     def init_app(app):
@@ -35,7 +38,6 @@ class TestingConfig(DevelopmentConfig):
 
 
 class StagingConfig(BaseConfig):
-    CI = True
 
     @staticmethod
     def init_app(app):

@@ -10,3 +10,10 @@ web:
     - .:/usr/src/app/
   env_file: .env_dev
   command: flask test
+
+dynamodb:
+  image: dwmkerr/dynamodb
+  ports:
+    - "8000:8000"
+  expose:
+    - "8000"
