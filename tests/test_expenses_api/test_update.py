@@ -4,7 +4,7 @@ from unittest.mock import patch
 from app.db_facade.facade import NoExpenseWithThisId
 from app.expenses_api.views import ApiError, db_facade
 from app.helpers.time import utc_now
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from tests.common_methods import SINGLE_EXPENSE, is_valid_expense
 from tests.test_expenses_api import db_facade_path
 
@@ -12,7 +12,7 @@ endpoint = 'expenses_api.update'
 
 
 @patch(db_facade_path, autospec=True)
-class TestUpdate(BaseTestWithHTTPMethods):
+class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.update.return_value = SINGLE_EXPENSE
@@ -32,7 +32,7 @@ class TestUpdate(BaseTestWithHTTPMethods):
 
 
 @patch(db_facade_path, autospec=True)
-class TestUpdateAndDbFacade(BaseTestWithHTTPMethods):
+class TestUpdateAndDbFacade(BaseTestWithHTTPMethodsMixin, BaseTest):
     def test_normal_usage(self, mocked_db: type(db_facade)):
         updated = SINGLE_EXPENSE.copy()
         updated['timestamp_utc_updated'] = utc_now()

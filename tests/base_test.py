@@ -1,21 +1,19 @@
 import unittest, os
 from app import create_app
-from flask import url_for, Response, current_app
+
+from flask import url_for, Response
 
 # usually, continuous integration providers set the CI env variable
 from tests.common_methods import TESTER_USER_FIREBASE_UID
-
-am_i_in_ci = os.environ.get("CI", False)
-if am_i_in_ci:
-    print("CI environment detected")
 
 
 class BaseTest(unittest.TestCase):
     # on class creation
     @classmethod
     def setUpClass(cls):
-        env = 'staging' if am_i_in_ci else "testing"
-        cls.app = current_app
+        env = os.environ['APP_STAGE']
+
+        cls.app = create_app(config_name=env)
         print("Running tests in %s environment" % env)
 
         # this is needed to make url_for work
@@ -31,14 +29,14 @@ class BaseTest(unittest.TestCase):
     def tearDownClass(cls):
         cls.app_context.pop()
 
-
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
 
-class BaseTestWithHTTPMethods(BaseTest):
+
+class BaseTestWithHTTPMethodsMixin(object):
     """
     Class to be subclassed when doing client testing.
     """

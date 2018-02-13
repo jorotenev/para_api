@@ -1,5 +1,5 @@
 from flask import Flask
-from config import config
+from config import configs, EnvironmentName
 from app.db_facade import db_facade
 
 
@@ -12,8 +12,8 @@ def _base_app(config_name):
     :arg config_name [string] - the name of the environment; must be a key in the "config" dict
     """
     app = Flask(__name__)
-    app.config.from_object(config[config_name])
-    config[config_name].init_app(app)
+    app.config.from_object(configs[config_name])
+    configs[config_name].init_app(app)
 
     return app
 
@@ -22,6 +22,10 @@ def create_app(config_name):
     """
     creates the Flask app.
     """
+    print("Environment from env vars: " + config_name)
+    if config_name not in EnvironmentName.all_names():
+        raise KeyError('config_name must be one of [%s]' % ", ".join(EnvironmentName.all_names()))
+
     app = _base_app(config_name=config_name)
     db_facade.init_app(app)
     from .main import main as main_blueprint

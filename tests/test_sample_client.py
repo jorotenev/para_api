@@ -1,11 +1,11 @@
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from flask import current_app
 from unittest.mock import patch, MagicMock
 
 from tests.common_methods import SINGLE_EXPENSE
 
 
-class ExampleTest(BaseTestWithHTTPMethods):
+class ExampleTest(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_sample(self):
         config = current_app.config
         response = self.get('api.ping', raw_response=False)
@@ -21,7 +21,7 @@ class ExampleTest(BaseTestWithHTTPMethods):
 
 
 @patch('app.api.views.db_facade', autospec=True)
-class DemoTestPatched(BaseTestWithHTTPMethods):
+class DemoTestPatched(BaseTest, BaseTestWithHTTPMethodsMixin):
     """
     mocked is reset for each test_
     """
@@ -44,7 +44,7 @@ class DemoTestPatched(BaseTestWithHTTPMethods):
         self.assertEqual(str(MagicMock), str(type(db_facade.asd)))
 
 
-class DeepEquality(BaseTestWithHTTPMethods):
+class DeepEquality(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_deep_equal(self):
         copy = SINGLE_EXPENSE.copy()
         copy['id'] = 1000
@@ -54,7 +54,7 @@ class DeepEquality(BaseTestWithHTTPMethods):
 
 
 @patch('app.api.views.db_facade', autospec=True)
-class TestRaises(BaseTestWithHTTPMethods):
+class TestRaises(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_raises(self, mocked_db):
         mocked_db.get_list.side_effect = KeyError('booom')
         start_id = 1

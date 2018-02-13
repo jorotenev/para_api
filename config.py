@@ -4,7 +4,7 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 
 dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
-load_dotenv(dotenv_path)
+load_dotenv(dotenv_path, verbose=True)
 
 
 class BaseConfig(object):
@@ -61,8 +61,13 @@ class EnvironmentName:
     production = 'production'
     default = 'default'
 
+    @classmethod
+    def all_names(cls):
+        return [attr for attr in dir(cls)
+                if not (attr.startswith('__') or attr == 'all_names')]
 
-config = {
+
+configs = {
     EnvironmentName.development: DevelopmentConfig,
     EnvironmentName.testing: TestingConfig,
     EnvironmentName.staging: StagingConfig,
