@@ -2,7 +2,7 @@ import json
 from unittest.mock import patch
 
 from app.expenses_api.views import MAXIMUM_BATCH_SIZE, ApiError, db_facade
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from json import loads
 
 from tests.common_methods import is_valid_expense, sample_expenses
@@ -13,7 +13,7 @@ reversed_expenses = list(reversed(sample_expenses))
 
 
 @patch(db_facade_path, autospec=True)
-class TestGETExpensesList(BaseTestWithHTTPMethods):
+class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_valid_request_returns_valid_response(self, mocked_db):
         mocked_db.get_list.return_value = reversed_expenses
@@ -83,7 +83,7 @@ class TestGETExpensesList(BaseTestWithHTTPMethods):
 
 
 @patch(db_facade_path, autospec=True)
-class TestGetExpensesListInteractionWithDbFacade(BaseTestWithHTTPMethods):
+class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_call_on_good_request(self, mocked_db: type(db_facade)):
         mocked_db.get_list.return_value = []
 

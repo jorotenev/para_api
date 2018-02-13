@@ -3,14 +3,14 @@ from unittest.mock import patch
 from app.db_facade.facade import NoExpenseWithThisId
 from app.expenses_api.views import db_facade
 from app.expenses_api.views import ApiError
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.remove'
 
 
 @patch(db_facade_path, autospec=True)
-class TestRemove(BaseTestWithHTTPMethods):
+class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.remove.return_value = True
@@ -31,7 +31,7 @@ class TestRemove(BaseTestWithHTTPMethods):
 
 
 @patch(db_facade_path, autospec=True)
-class TestRemoveAndDbFacade(BaseTestWithHTTPMethods):
+class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_normal_usage(self, mocked_db: type(db_facade)):
         mocked_db.remove.return_value = True
         exp_id = 1

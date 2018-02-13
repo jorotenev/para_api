@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from app.db_facade.facade import NoExpenseWithThisId
 from app.expenses_api.views import ApiError, db_facade as DbFacade
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from tests.common_methods import is_valid_expense, SINGLE_EXPENSE
 
 endpoint = 'expenses_api.get_expense_by_id'
@@ -12,7 +12,7 @@ from . import db_facade_path
 
 
 @patch(db_facade_path, autospec=True)
-class TestGetSingleExpense(BaseTestWithHTTPMethods):
+class TestGetSingleExpense(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.get_list.return_value = [SINGLE_EXPENSE]
@@ -33,7 +33,7 @@ class TestGetSingleExpense(BaseTestWithHTTPMethods):
 
 
 @patch(db_facade_path, autospec=True)
-class TestGetSingleExpense(BaseTestWithHTTPMethods):
+class TestGetSingleExpense(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_normal_usage(self, mocked_db: type(DbFacade)):
         mocked_db.get_list.return_value = SINGLE_EXPENSE
         exp_id = SINGLE_EXPENSE['id']

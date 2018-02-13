@@ -1,6 +1,6 @@
 from json import loads, dumps
 from unittest.mock import patch
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from app.models.sample_expenses import sample_expenses
 from tests.common_methods import is_valid_expense, is_number, SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
@@ -9,7 +9,7 @@ endpoint = 'expenses_api.sync'
 
 
 @patch(db_facade_path, autospec=True)
-class TestSync(BaseTestWithHTTPMethods):
+class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.sync.return_value = dumps({
@@ -27,7 +27,7 @@ class TestSync(BaseTestWithHTTPMethods):
         self.assertTrue(all([is_valid_expense(exp) for exp in json['to_update']]))
         self.assertTrue(all(map(is_number, json['to_remove'])))
 
-    def test_fails_on_invalid_payload(self,_):
+    def test_fails_on_invalid_payload(self, _):
         payload = '[{"something":1}]'
         raw_resp = self.get(url=endpoint, data=payload)
         self.assertEqual(raw_resp.status_code, 400)

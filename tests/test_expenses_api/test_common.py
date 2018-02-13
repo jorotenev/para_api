@@ -1,10 +1,10 @@
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 
 from flask import current_app
 # from app.expenses_api.views import db_facade
 
 
-class ExampleTest(BaseTestWithHTTPMethods):
+class ExampleTest(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_sample(self):
         config = current_app.config
@@ -12,7 +12,7 @@ class ExampleTest(BaseTestWithHTTPMethods):
         self.assertIn('pong', response, "The HTML of the index page doesn't contain expected text")
 
 
-class TestAuthHeader(BaseTestWithHTTPMethods):
+class TestAuthHeader(BaseTest, BaseTestWithHTTPMethodsMixin):
     auth_header_name = 'x-firebase-auth-token'
 
     def test_request_to_protected_resources_requires_auth_token(self):

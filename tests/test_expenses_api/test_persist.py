@@ -2,7 +2,7 @@ from json import loads
 from unittest.mock import patch
 
 from app.expenses_api.views import ApiError
-from tests.base_test import BaseTestWithHTTPMethods
+from tests.base_test import  BaseTest, BaseTestWithHTTPMethodsMixin
 from tests.common_methods import SINGLE_EXPENSE, is_valid_expense
 from tests.test_expenses_api import db_facade_path
 
@@ -10,7 +10,7 @@ endpoint = 'expenses_api.persist'
 
 
 @patch(db_facade_path, autospec=True)
-class TestPersist(BaseTestWithHTTPMethods):
+class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.persist.return_value = SINGLE_EXPENSE
@@ -40,7 +40,7 @@ class TestPersist(BaseTestWithHTTPMethods):
 
 
 @patch(db_facade_path, autospec=True)
-class TestPersistUsesDbFacadeCorrectly(BaseTestWithHTTPMethods):
+class TestPersistUsesDbFacadeCorrectly(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_normal_usage(self, mocked_db):
         mocked_db.persist.return_value = SINGLE_EXPENSE
         to_persist = SINGLE_EXPENSE.copy()
