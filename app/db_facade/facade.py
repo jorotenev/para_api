@@ -1,25 +1,77 @@
 import boto3
+from decimal import Decimal
 
 from app.helpers.utils import deadline
 from config import EnvironmentName
-from .dynamodb.dynamodb import dynamodb
+
+raw_db = None
+dynamodb_users_table_init_information = {
+    "KeySchema": [
+        {
+            'AttributeName': 'user_uid',
+            'KeyType': 'HASH'  # Partition key
+        },
+        {
+            'AttributeName': 'id',
+            'KeyType': 'RANGE'  # Sort key
+        }
+    ],
+    "AttributeDefinitions": [
+        {
+            'AttributeName': 'user_uid',
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': 'id',
+            'AttributeType': 'N'
+        },
+
+    ],
+    "ProvisionedThroughput": {"ReadCapacityUnits": 3, "WriteCapacityUnits": 3}
+}
+
+
+class ItemConverter(object):
+    def convertToDbFormat(self, exp: dict):
+        copy = exp.copy()
+        for key, value in copy.items():
+            if type(value) in [int, float]:
+                copy[key] = Decimal(value)
+
+        return copy
+
+    def convertFromDbFormat(self, exp):
+        copy = exp.copy()
+        for key, value in copy.items():
+            if isinstance(value, Decimal):
+                copy[key] = int(value) if value % 1 == 0 else float(value)
+        return copy
 
 
 class __DbFacade(object):
+    EXPENSES_TABLE_NAME_PREFIX = 'expenses-'
+    HASH_KEY = 'user_uid'
+    RANGE_KEY = 'id'
+    EXPENSES_TABLE_NAME = EXPENSES_TABLE_NAME_PREFIX
+    converter = ItemConverter()
+
     def __init__(self):
         self.db_url = None
 
     def init_app(self, app):
-        global dynamodb
+        global raw_db
+        self.EXPENSES_TABLE_NAME = self.EXPENSES_TABLE_NAME_PREFIX + app.config['APP_STAGE'].lower()
         kwargs = {}
         if app.config['APP_STAGE'] in [EnvironmentName.development, EnvironmentName.testing]:
             local_dynamodb_url = app.config['LOCAL_DYNAMODB_URL']
             kwargs['endpoint_url'] = local_dynamodb_url
 
-        dynamodb = boto3.resource('dynamodb', **kwargs)
-        self.ping_db(dynamodb)
+        raw_db = boto3.resource('dynamodb', **kwargs)
+        self.ping_db(raw_db)
 
-    @deadline(3)
+        self.raw_db = raw_db
+
+    @deadline(3, "The db didn't respond within the time limit")
     def ping_db(self, db):
 
         """
