@@ -1,7 +1,4 @@
-import boto3
 from flask import Flask
-from config import configs, EnvironmentName
-from app.db_facade import db_facade
 
 
 def _base_app(config_name):
@@ -12,6 +9,7 @@ def _base_app(config_name):
 
     :arg config_name [string] - the name of the environment; must be a key in the "config" dict
     """
+    from config import configs
     app = Flask(__name__)
     app.config.from_object(configs[config_name])
     configs[config_name].init_app(app)
@@ -23,13 +21,15 @@ def create_app(config_name):
     """
     creates the Flask app.
     """
+    from config import EnvironmentName
+    from app.db_facade import db_facade
+
     print("Creating an app for environment: [%s]" % config_name)
     if config_name not in EnvironmentName.all_names():
         raise KeyError('config_name must be one of [%s]' % ", ".join(EnvironmentName.all_names()))
 
     app = _base_app(config_name=config_name)
     db_facade.init_app(app)
-
 
     from .main import main as main_blueprint
     from .api import api as api_blueprint
@@ -44,6 +44,3 @@ def create_app(config_name):
     app.register_blueprint(expenses_api_blueprint, url_prefix="/expenses_api/%s" % api_version)
 
     return app
-
-
-

@@ -2,6 +2,14 @@
 import os
 import click
 import sys
+
+from os.path import dirname, join
+
+from dotenv import load_dotenv
+
+dotenv_path = join(dirname(__file__), '../.env_test')  # will fail silently if file is missing
+load_dotenv(dotenv_path, verbose=True)
+
 from app import create_app
 from config import EnvironmentName
 
