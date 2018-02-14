@@ -1,1 +1,1 @@
-from .facade import db_facade
+from .facade import db_facade, dynamodb_users_table_init_information
