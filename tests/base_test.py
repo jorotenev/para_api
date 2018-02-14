@@ -1,17 +1,23 @@
-import unittest, os
-from app import create_app
+import unittest
+from os.path import dirname, join
+from dotenv import load_dotenv
 from flask import url_for, Response
-# usually, continuous integration providers set the CI env variable
+
+dotenv_path = join(dirname(__file__), '../.env_test')  # will fail silently if file is missing
+load_dotenv(dotenv_path, verbose=True)
+
 from config import EnvironmentName
+from app import create_app
 from tests.common_methods import TESTER_USER_FIREBASE_UID
 
 
 class BaseTest(unittest.TestCase):
+    firebase_uid = TESTER_USER_FIREBASE_UID
+
     # on class creation
     @classmethod
     def setUpClass(cls):
         cls.app = create_app(config_name=EnvironmentName.testing)
-        print("Running tests in environment")
 
         # this is needed to make url_for work
         cls.app.config['SERVER_NAME'] = 'localhost'
@@ -37,7 +43,6 @@ class BaseTestWithHTTPMethodsMixin(object):
     """
     Class to be subclassed when doing client testing.
     """
-    firebase_uid = TESTER_USER_FIREBASE_UID
 
     def post(self, url, data, url_args={}, **kwargs):
         return self.full_response(method='POST', data=data, url=url, url_args=url_args, **kwargs)
