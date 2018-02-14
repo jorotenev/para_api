@@ -3,8 +3,8 @@ import os
 from os.path import join, dirname
 from dotenv import load_dotenv
 
-dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
-load_dotenv(dotenv_path, verbose=True)
+
+
 local_dynamodb_url = 'http://localhost:8000'
 
 
@@ -12,7 +12,6 @@ class BaseConfig(object):
     EXPENSES_API_VERSION = 'v1'
     APP_STAGE = os.environ['APP_STAGE']
     TESTING = False
-    DB_URL = os.environ['DB_URL']
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
     CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
