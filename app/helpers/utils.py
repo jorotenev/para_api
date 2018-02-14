@@ -1,20 +1,18 @@
 import signal
 
 
-class TimedOutExc(Exception):
-    pass
-
-
-def deadline(timeout):
+def deadline(timeout, msg="Function timed out"):
     """
     https://www.filosophy.org/post/32/python_function_execution_deadlines__in_simple_examples/
+    decorates a function; given a deadline period, if the decorated function hasn't returned,
+    a TimedOutExc is raised.
     :param timeout: in seconds
     :return:
     """
 
     def decorate(f):
         def handler(signum, frame):
-            raise TimedOutExc("function timed out")
+            raise TimedOutExc(msg)
 
         def new_f(*args, **kwargs):
             # Set the signal handler and a 5-second alarm
@@ -31,3 +29,7 @@ def deadline(timeout):
         return new_f
 
     return decorate
+
+
+class TimedOutExc(Exception):
+    pass
