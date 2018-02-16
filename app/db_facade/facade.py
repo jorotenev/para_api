@@ -101,6 +101,7 @@ class __DbFacade(object):
         :return: a list of expense objects
         :raises NoSuchUser
         """
+
         batch_size = min(batch_size, MAX_BATCH_SIZE)
         return None
 
@@ -110,6 +111,8 @@ class __DbFacade(object):
         :param expense: expense with `id` parameter set to None
         :param user_uid:
         :return: the persisted expense
+        :raises
+
         """
 
     def update(self, expense, user_uid):
@@ -167,13 +170,18 @@ class NoSuchUser(Exception):
     user with such uid
     """
 
-    def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
+    def __init__(self, *args):
+        super(NoSuchUser, self).__init__(*args)
 
 
 class NoExpenseWithThisId(Exception):
-    def __init__(self, *args, **kwargs):
-        super(Exception, self).__init__(*args, **kwargs)
+    def __init__(self, *args):
+        super(NoExpenseWithThisId, self).__init__(*args)
+
+
+class PersistFailed(Exception):
+    def __init__(self, *args):
+        super(PersistFailed, self).__init__(*args)
 
 
 MAX_BATCH_SIZE = 100
