@@ -10,7 +10,7 @@ class DbTestBase(BaseTest):
         super(DbTestBase, cls).setUpClass()
 
         cls.raw_db = db_facade.raw_db
-
+        cls.facade = db_facade
         assert db_facade.EXPENSES_TABLE_NAME != db_facade.EXPENSES_TABLE_NAME_PREFIX, 'db facade hasnt been initialised'
         create_table_sync(cls.raw_db, table_name=db_facade.EXPENSES_TABLE_NAME,
                           **dynamodb_users_table_init_information)
@@ -36,28 +36,29 @@ class DbTestBase(BaseTest):
         print("tearDown")
 
     @staticmethod
-    def withSeedData(f):
+    def withSeedDataDecorator(f):
 
         from app.models.sample_expenses import sample_expenses
         valid_items = list(sample_expenses)
 
         def wrapper(*args, **kwargs):
             self = args[0]
-            for exp in valid_items:
-                exp[db_facade.HASH_KEY] = self.firebase_uid
-
-            prepared = map(db_facade.converter.convertToDbFormat, valid_items)
-
-            with self.expenses_table.batch_writer() as batch:
-                for exp in prepared:
-                    batch.put_item(Item=exp)
-            self.expenses_table.reload()
+            self.seedData()
             print("\n***seeded***\n")
             return f(*args, **kwargs)
 
         return wrapper
 
+    def seedData(self):
+        from app.models.sample_expenses import sample_expenses
+        valid_items = list(sample_expenses)
 
-class DbTestMethodsMixin(object):
-    def asd(self):
-        self.raw_db()
+        for exp in valid_items:
+            exp[db_facade.HASH_KEY] = self.firebase_uid
+
+        prepared = map(db_facade.converter.convertToDbFormat, valid_items)
+
+        with self.expenses_table.batch_writer() as batch:
+            for exp in prepared:
+                batch.put_item(Item=exp)
+        self.expenses_table.reload()
