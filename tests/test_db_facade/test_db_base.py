@@ -38,9 +38,6 @@ class DbTestBase(BaseTest):
     @staticmethod
     def withSeedDataDecorator(f):
 
-        from app.models.sample_expenses import sample_expenses
-        valid_items = list(sample_expenses)
-
         def wrapper(*args, **kwargs):
             self = args[0]
             self.seedData()
@@ -49,16 +46,19 @@ class DbTestBase(BaseTest):
 
         return wrapper
 
-    def seedData(self):
+    def seedData(self, firebase_uid=None):
         from app.models.sample_expenses import sample_expenses
         valid_items = list(sample_expenses)
+        firebase_uid = firebase_uid or self.firebase_uid
 
         for exp in valid_items:
-            exp[db_facade.HASH_KEY] = self.firebase_uid
+            exp['user_uid'] = firebase_uid
 
         prepared = map(db_facade.converter.convertToDbFormat, valid_items)
 
         with self.expenses_table.batch_writer() as batch:
             for exp in prepared:
                 batch.put_item(Item=exp)
+
+        self.seeded_expenses = valid_items
         self.expenses_table.reload()

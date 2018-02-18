@@ -8,7 +8,6 @@ class SanityChecking(DbTestBase):
 
     @seed_data
     def test_seed_data_loads(self):
-        print('testing')
         self.assertEqual(len(sample_expenses), self.expenses_table.item_count)
 
     def test_tests_use_fresh_table(self):
@@ -20,19 +19,49 @@ class TestGetList(DbTestBase):
     @seed_data
     def test_returns_correct_items(self):
         batch_size = 5
-        expenses = self.facade.get_list(10, self.firebase_uid, batch_size)
+        expenses = self.facade.get_list(
+            None,  # will return the newest
+            self.firebase_uid,
+            property_name='timestamp_utc',
+            ordering_direction='desc',
+            batch_size=batch_size)
 
         self.assertEqual(len(expenses), batch_size)
-        ids = [e['id'] for e in expenses]
-        self.assertTrue(ids[0] > ids[1], "Expenses must be ordered from larger ID to smaller")
+        timestamps = [e['timestamp_utc'] for e in expenses]
+        self.assertTrue(timestamps[0] > timestamps[1], "Expenses must be ordered from larger timestamp_utc to smaller")
 
         expected_expenses = list(reversed(sample_expenses))[0:batch_size]
         for i, expected_exp in enumerate(expected_expenses):
             self.assertDictEqual(expected_exp, expenses[i])
 
     def test_empty_list_if_no_data(self):
-        self.assertEqual([], self.facade.get_list(10, self.firebase_uid, 5))
+        assert 0 == self.expenses_table.item_count
 
-        self.seedData()
-        self.assertEqual([], self.facade.get_list(10, 'this is some other uid', 5),
-                         "Shouldn't return expenses for another user")
+        expenses = self.facade.get_list(
+            None,  # will return the newest
+            self.firebase_uid,
+            property_name='timestamp_utc',
+            ordering_direction='desc',
+            batch_size=5)
+
+        self.assertEqual([], expenses)
+
+    def test_doesnt_return_other_users_data(self):
+        self.seedData(firebase_uid='one')
+        assert self.expenses_table.item_count == len(sample_expenses)
+        self.seedData(firebase_uid='two')
+        assert self.expenses_table.item_count == len(sample_expenses) * 2
+
+        batch_of_one = self.facade.get_list(
+            property_name='timestamp_utc',
+            property_value=None,
+            user_uid='one',
+        )
+
+        batch_of_two = self.facade.get_list(
+            property_name='timestamp_utc',
+            property_value=None,
+            user_uid='two',
+        )
+        self.assertEqual(len(sample_expenses), len(batch_of_one))
+        self.assertEqual(len(sample_expenses), len(batch_of_two))

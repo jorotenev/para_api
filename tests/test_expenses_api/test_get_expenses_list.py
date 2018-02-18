@@ -1,12 +1,14 @@
 import json
 from unittest.mock import patch
 
-from app.expenses_api.views import MAXIMUM_BATCH_SIZE, ApiError, db_facade
+from app.helpers.time import utc_now_str
 from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from json import loads
 
 from tests.common_methods import is_valid_expense, sample_expenses
 from tests.test_expenses_api import db_facade_path
+
+from app.expenses_api.views import MAX_BATCH_SIZE, ApiError, db_facade
 
 endpoint = 'expenses_api.get_expenses_list'
 reversed_expenses = list(reversed(sample_expenses))
@@ -14,44 +16,77 @@ reversed_expenses = list(reversed(sample_expenses))
 
 @patch(db_facade_path, autospec=True)
 class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def setUp(self):
+        super(TestGETExpensesList, self).setUp()
+
+        self.start_from_property = 'timestamp_utc'
+        self.start_from_property_value = utc_now_str()
+        self.valid_request_args = {
+            "start_from_id": 'some id',
+            "start_from_property": 'timestamp_utc',
+            "start_from_property_value": utc_now_str(),
+            "batch_size": 10,
+            "ordering_direction": 'desc'
+        }
 
     def test_valid_request_returns_valid_response(self, mocked_db):
-        mocked_db.get_list.return_value = reversed_expenses
+        mocked_db.get_list.return_value = reversed_expenses[1:]
+        batch_size = len(reversed_expenses) - 1
 
-        batch_size = len(reversed_expenses)
-        start_id = reversed_expenses[0]['id']
-        raw_resp = self.get(endpoint, url_args={"start_id": start_id, 'batch_size': batch_size},
-                            raw_response=False)
+        request_params = self.valid_request_args.copy()
+        request_params['start_from_property'] = self.start_from_property
+        request_params['start_from_property_value'] = self.start_from_property_value
+        request_params['start_from_id'] = reversed_expenses[0]['id']
+        request_params['batch_size'] = batch_size
+        request_params['ordering_direction'] = 'desc'
 
-        json_resp = loads(raw_resp)
+        raw_resp = self.get(endpoint, url_args=request_params,
+                            raw_response=True)
+
+        self.assertEqual(200, raw_resp.status_code)
+
+        json_resp = loads(raw_resp.get_data(as_text=True))
 
         self.assertEqual(batch_size, len(json_resp), "The result should be of size %i" % batch_size)
 
-        ids = [exp['id'] for exp in json_resp]
-        self.assertEqual(ids, list(sorted(ids, reverse=True)), "Result should be sorted by id descendigly")
-        self.assertTrue(ids[0] > ids[1], 'The first result should be with the highest id')
+        property_values = [exp[self.start_from_property] for exp in json_resp]
+        self.assertEqual(property_values, list(sorted(property_values, reverse=True)),
+                         "Result should be sorted by the selected property descendigly")
+        self.assertTrue(property_values[0] > property_values[1],
+                        'The first result should be with the highest property value')
 
         self.assertTrue(all([is_valid_expense(exp) for exp in json_resp]),
                         "All returned objects must be valid expenses")
 
-        self.assertEqual(start_id, ids[0], "The first id is not start_id")
+        self.assertLess(json_resp[0][self.start_from_property], reversed_expenses[0][self.start_from_property],
+                        "The start_from must be `larger` than the first result when ordered in desc order")
 
     def test_with_invalid_params(self, mocked_db):
         batch_size = -1
         start_from = 1
         invalid_args = [
             {
-                'start_id': 10,
-                'batch_size': -1
+                'start_from_property_value': '',
+
+                'start_from_id': sample_expenses[0]['id'],
+                'start_from_property': 'timestamp_utc',
+                'batch_size': 1,
+                'ordering_direction': 'asc'
             },
             {
-                'start_id': -1,
-                'batch_size': 10
+                'start_from_id': 1,
+
+                'start_from_property': 'timestamp_utc',
+                'start_from_property_value': utc_now_str(),
             },
             {
-                'start_id': -1,
-                'batch_size': -1
+                'start_from_property_value': utc_now_str().replace('Z', '+00:00'),  # invalid for a ts to end in +00:00
+                'start_from_property': 'timestamp_utc',
+                'start_from_id': 'some str',
+            },
+            {
             }
+
         ]
         for args in invalid_args:
             raw_resp = self.get(url=endpoint, url_args={'start_id': start_from, 'batch_size': batch_size})
@@ -65,10 +100,11 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
             mocked_db.get_list.reset_mock()
 
     def test_with_too_big_batch_size(self, mocked_db):
-        batch_size = 100 + MAXIMUM_BATCH_SIZE
-        start_id = batch_size
+        batch_size = 100 + MAX_BATCH_SIZE
+        url_args = self.valid_request_args.copy()
+        url_args['batch_size'] = batch_size
 
-        raw_resp = self.get(url=endpoint, url_args={'start_id': start_id, "batch_size": batch_size})
+        raw_resp = self.get(url=endpoint, url_args=url_args)
         self.assertEqual(413, raw_resp.status_code)
 
         response_text = raw_resp.get_data(as_text=True)
