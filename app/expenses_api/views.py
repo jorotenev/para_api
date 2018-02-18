@@ -2,15 +2,15 @@ import json
 from flask import request
 from app.api_utils.response import make_json_response
 from app.db_facade import db_facade
-from app.db_facade.facade import MAX_BATCH_SIZE, OrderingDirection
-from app.helpers.time import ensure_ts_str_ends_with_z
+from app.db_facade.facade import MAX_BATCH_SIZE
+from app.db_facade.misc import OrderingDirection
 from app.models.expense_validation import Validator
 from . import expenses_api
-from datetime import datetime as dt, timezone as tz
 from app.models.json_schema import expense_schema
 
 
 class ApiError:
+    INVALID_BATCH_SIZE = "Received an invalid batch_size. Must be >0 integer."
     BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
     INVALID_QUERY_PARAMS = "Invalid URL query parameters"
     NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id in this account"
@@ -25,11 +25,14 @@ def test():
     return 'asd' + str(db_facade.asd())
 
 
-def validate_get_expenses_list_property_value(property_name, property_value):
+def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
     assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
+    if not none_is_ok and property_value is None:
+        assert "%s cannot be None" % property_name
 
-    assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
-                                                                         (str(property_value), property_name)
+    if property_value is not None:
+        assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
+                                                                           (str(property_value), property_name)
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])
@@ -48,7 +51,7 @@ def get_expenses_list():
             assert expense_id, "If a property_value is set, the start_from_id is mandatory"
 
         assert batch_size < MAX_BATCH_SIZE, ApiError.BATCH_SIZE_EXCEEDED
-
+        assert batch_size > 0, ApiError.INVALID_BATCH_SIZE
     except AssertionError as ex:
         status_code = 400
         if ApiError.BATCH_SIZE_EXCEEDED in str(ex):
@@ -58,13 +61,14 @@ def get_expenses_list():
             'error': "%s. %s" % (ApiError.INVALID_QUERY_PARAMS, str(ex))
         }), status_code=status_code)
 
-    ordering_direction = OrderingDirection[ordering_direction]  # make it an enum
+    ordering_direction = OrderingDirection[ordering_direction]
 
-    response = []
+    response = db_facade.get_list(property_value=property_value,
+                                  property_name=property_name,
+                                  ordering_direction=ordering_direction,
+                                  user_uid='fake firebase uid'
+                                  )
 
-    # response.sort(key=lambda expense: expense[property_value],
-    #               reverse=True if ordering_direction is OrderingDirection.desc else False)
-    #
     return make_json_response(response)
 
 
