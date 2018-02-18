@@ -1,28 +1,13 @@
 import json
 from flask import request
-
 from app.api_utils.response import make_json_response
-from app.db_facade.facade import MAX_BATCH_SIZE
+from app.db_facade import db_facade
+from app.db_facade.facade import MAX_BATCH_SIZE, OrderingDirection
+from app.helpers.time import ensure_ts_str_ends_with_z
+from app.models.expense_validation import Validator
 from . import expenses_api
 from datetime import datetime as dt, timezone as tz
-from app.db_facade import db_facade
-
-# {
-#     "id": 10,
-#     "name": "server id 10",
-#     "amount": 95,
-#     "currency": "EUR,
-#     "tags": [
-#         "vacation",
-#         "vacation",
-#         "work"
-#     ],
-#     "timestamp_utc": "2018-02-10T18:55:40.561052+00:00"
-# }
-
-
-MAX_ID = 50
-MAXIMUM_BATCH_SIZE = MAX_BATCH_SIZE
+from app.models.json_schema import expense_schema
 
 
 class ApiError:
@@ -31,6 +16,8 @@ class ApiError:
     NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id in this account"
     ID_PROPERTY_FORBIDDEN = "The id property MUST be null"
     INVALID_EXPENSE = "The expense doesn't match the expected format"
+    INVALID_ORDER_PARAM = "Invalid value for ordering direction. Allowed: [%s]" % ", ".join(
+        [o.name for o in OrderingDirection])
 
 
 @expenses_api.route("/test", methods=['GET'])
@@ -38,28 +25,46 @@ def test():
     return 'asd' + str(db_facade.asd())
 
 
+def validate_get_expenses_list_property_value(property_name, property_value):
+    assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
+
+    assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
+                                                                         (str(property_value), property_name)
+
+
 @expenses_api.route("/get_expenses_list", methods=['GET'])
 def get_expenses_list():
-    start_id = request.args.get('start_id', type=int, default=MAX_ID)
-    start_id = min(start_id, MAX_ID)  # TODO
+    property_name = request.args.get('start_from_property', default='timestamp_utc')
+    property_value = request.args.get('start_from_property_value', default=None)
+    ordering_direction = request.args.get("ordering_direction", default='desc')
+    expense_id = request.args.get("start_from_id", default=None)
     batch_size = request.args.get('batch_size', type=int, default=10)
 
+    try:
+        validate_get_expenses_list_property_value(property_name, property_value)
+        assert OrderingDirection.is_member(ordering_direction), ApiError.INVALID_ORDER_PARAM
+
+        if property_value:
+            assert expense_id, "If a property_value is set, the start_from_id is mandatory"
+
+        assert batch_size < MAX_BATCH_SIZE, ApiError.BATCH_SIZE_EXCEEDED
+
+    except AssertionError as ex:
+        status_code = 400
+        if ApiError.BATCH_SIZE_EXCEEDED in str(ex):
+            status_code = 413
+
+        return make_json_response(json.dumps({
+            'error': "%s. %s" % (ApiError.INVALID_QUERY_PARAMS, str(ex))
+        }), status_code=status_code)
+
+    ordering_direction = OrderingDirection[ordering_direction]  # make it an enum
+
     response = []
-    last_id = max(1, start_id - batch_size + 1)
 
-    for i in range(last_id, start_id + 1):
-        response.append({
-            "id": i,
-            "name": "server id %s" % str(i),
-            "amount": i * 10 + 1,
-            "currency": "EUR",
-            "tags": [] if i % 2 == 0 else ['vacation', 'work'],
-            'timestamp_utc': dt.now(tz.utc).isoformat(),
-            'timestamp_utc_created': dt.now(tz.utc).isoformat(),
-            'timestamp_utc_updated': dt.now(tz.utc).isoformat(),
-        })
-
-    response.sort(key=lambda expense: expense['id'], reverse=True)
+    # response.sort(key=lambda expense: expense[property_value],
+    #               reverse=True if ordering_direction is OrderingDirection.desc else False)
+    #
     return make_json_response(response)
 
 
