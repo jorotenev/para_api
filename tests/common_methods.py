@@ -1,4 +1,4 @@
-from app.models.expense_validation import ExpenseValidator
+from app.models.expense_validation import Validator
 from app.models.sample_expenses import sample_expenses
 
 SINGLE_EXPENSE = sample_expenses[0]
@@ -10,7 +10,7 @@ def currentDay():
 
 
 def is_valid_expense(exp):
-    is_valid, _ = ExpenseValidator.validate(exp)
+    is_valid, _ = Validator.validate_expense(exp)
     return is_valid
 
 
