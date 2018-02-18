@@ -4,6 +4,8 @@ import sys
 from os.path import dirname, join
 from dotenv import load_dotenv
 
+from app.helpers.time import ensure_ts_str_ends_with_z
+
 dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
 load_dotenv(dotenv_path, verbose=True)
 
@@ -35,7 +37,8 @@ def create_expenses_table():
 
     table_name = db_facade.EXPENSES_TABLE_NAME
     from app.db_facade.dynamodb.dynamo import create_table_sync
-    from app.db_facade.facade import dynamodb_users_table_init_information
+    from app.db_facade.table_schema import dynamodb_users_table_init_information
+
     create_table_sync(dynamodb_resource=db_facade.raw_db,
                       table_name=table_name,
                       **dynamodb_users_table_init_information)
@@ -75,11 +78,11 @@ def seed_data():
 
     for i in range(1, 26):
         temp = seed.copy()
-        temp[db_facade.HASH_KEY] = 'fake firebase uid'
+        temp['user_uid'] = 'fake firebase uid'
         temp['id'] = str(uuid.uuid4())
         temp['name'] = 'server id ' + str(i)
         temp['timestamp_utc'] = temp['timestamp_utc_created'] = temp[
-            'timestamp_utc_updated'] = (now + datetime.timedelta(seconds=i)).isoformat()
+            'timestamp_utc_updated'] = ensure_ts_str_ends_with_z((now + datetime.timedelta(seconds=i)).isoformat())
         expenses.append(temp)
 
     items = [{"PutRequest": {'Item': expense}} for expense in expenses]
