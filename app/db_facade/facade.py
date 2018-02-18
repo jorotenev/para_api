@@ -1,34 +1,15 @@
+from enum import Enum
+
 import boto3
 from decimal import Decimal
 
 from app.helpers.utils import deadline
 from config import EnvironmentName
 
+"""
+http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html
+"""
 raw_db = None
-dynamodb_users_table_init_information = {
-    "KeySchema": [
-        {
-            'AttributeName': 'user_uid',
-            'KeyType': 'HASH'  # Partition key
-        },
-        {
-            'AttributeName': 'id',
-            'KeyType': 'RANGE'  # Sort key
-        }
-    ],
-    "AttributeDefinitions": [
-        {
-            'AttributeName': 'user_uid',
-            'AttributeType': 'S'
-        },
-        {
-            'AttributeName': 'id',
-            'AttributeType': 'N'
-        },
-
-    ],
-    "ProvisionedThroughput": {"ReadCapacityUnits": 3, "WriteCapacityUnits": 3}
-}
 
 
 class ItemConverter(object):
@@ -48,11 +29,21 @@ class ItemConverter(object):
         return copy
 
 
+class OrderingDirection(Enum):
+    asc = 'asc'
+    desc = 'desc'
+
+    @classmethod
+    def is_member(cls, candidate: str):
+        return candidate in [ord.name for ord in OrderingDirection]
+
+
 class __DbFacade(object):
     EXPENSES_TABLE_NAME_PREFIX = 'expenses-'
     HASH_KEY = 'user_uid'
-    RANGE_KEY = 'id'
+    RANGE_KEY = 'timestamp_utc'
     EXPENSES_TABLE_NAME = EXPENSES_TABLE_NAME_PREFIX
+
     converter = ItemConverter()
 
     def __init__(self):
@@ -71,7 +62,7 @@ class __DbFacade(object):
 
         self.raw_db = raw_db
 
-    @deadline(3, "The db didn't respond within the time limit")
+    @deadline(3, "DB health check failed. Is the table created and is the db reachable?")
     def ping_db(self, db):
 
         """
@@ -85,24 +76,20 @@ class __DbFacade(object):
         except Exception as err:
             raise Exception("DB not ready. raw error: " + str(err))
 
-    def get_single(self, expense_id, user_id):
+    def get_list(self,
+                 property_value,
+                 user_uid,
+                 property_name='timestamp_utc',
+                 ordering_direction='desc',
+                 batch_size=25):
         """
-        :param expense_id:
-        :param user_id:
-        :return: the expense object
-        :raises NoExpenseWithThisId
+        :param property_value:  the value of the property `property_name`
+        :param property_name: which expense property to use as sort key
+        :param user_uid:
+        :param ordering_direction: OrderingDirection instance
+        :param batch_size: int
+        :return: list of expense objects
         """
-
-    def get_list(self, start_id, user_uid, batch_size):
-        """
-        :param start_id: inclusive, from where to start the search
-        :param user_uid: the user for which to search
-        :param batch_size: how many items (at most)
-        :return: a list of expense objects
-        :raises NoSuchUser
-        """
-
-        batch_size = min(batch_size, MAX_BATCH_SIZE)
         return None
 
     def persist(self, expense, user_uid):
@@ -112,7 +99,6 @@ class __DbFacade(object):
         :param user_uid:
         :return: the persisted expense
         :raises
-
         """
 
     def update(self, expense, user_uid):
@@ -127,14 +113,14 @@ class __DbFacade(object):
         """
         pass
 
-    def remove(self, expense_id, user_uid):
+    def remove(self, expense, user_uid):
         """
-
-        :param expense_id: int
+        :param expense: expense object
         :param user_uid:
         :return: boolean True on successful deletion
         :raises NoSuchUser
         :raises NoExpenseWithThisId
+        :returns void
         """
 
     def sync(self, sync_request_objs, user_uid):
@@ -160,9 +146,6 @@ class __DbFacade(object):
         :raises  NoSuchUser
         """
 
-    def asd(self):
-        return self.db_url
-
 
 class NoSuchUser(Exception):
     """
@@ -184,5 +167,29 @@ class PersistFailed(Exception):
         super(PersistFailed, self).__init__(*args)
 
 
-MAX_BATCH_SIZE = 100
+dynamodb_users_table_init_information = {
+    "KeySchema": [
+        {
+            'AttributeName': __DbFacade.HASH_KEY,
+            'KeyType': 'HASH'  # Partition key
+        },
+        {
+            'AttributeName': __DbFacade.RANGE_KEY,
+            'KeyType': 'RANGE'  # Sort key
+        }
+    ],
+    "AttributeDefinitions": [
+        {
+            'AttributeName': __DbFacade.HASH_KEY,
+            'AttributeType': 'S'
+        },
+        {
+            'AttributeName': __DbFacade.RANGE_KEY,
+            'AttributeType': 'S'
+        },
+
+    ],
+    "ProvisionedThroughput": {"ReadCapacityUnits": 3, "WriteCapacityUnits": 3}
+}
+MAX_BATCH_SIZE = 25
 db_facade = __DbFacade()
