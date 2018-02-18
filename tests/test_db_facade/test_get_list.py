@@ -1,5 +1,6 @@
 from app.models.sample_expenses import sample_expenses
 from tests.test_db_facade.test_db_base import DbTestBase
+from app.db_facade.misc import OrderingDirection
 
 seed_data = DbTestBase.withSeedDataDecorator
 
@@ -20,10 +21,10 @@ class TestGetList(DbTestBase):
     def test_returns_correct_items(self):
         batch_size = 5
         expenses = self.facade.get_list(
-            None,  # will return the newest
-            self.firebase_uid,
+            None,
+            user_uid=self.firebase_uid,
             property_name='timestamp_utc',
-            ordering_direction='desc',
+            ordering_direction=OrderingDirection.desc,
             batch_size=batch_size)
 
         self.assertEqual(len(expenses), batch_size)
@@ -38,10 +39,10 @@ class TestGetList(DbTestBase):
         assert 0 == self.expenses_table.item_count
 
         expenses = self.facade.get_list(
-            None,  # will return the newest
+            None,
             self.firebase_uid,
             property_name='timestamp_utc',
-            ordering_direction='desc',
+            ordering_direction=OrderingDirection.desc,
             batch_size=5)
 
         self.assertEqual([], expenses)
