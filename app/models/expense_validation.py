@@ -1,5 +1,5 @@
 from jsonschema import validate, ValidationError
-from app.models.json_schema import expense_schema, timestamp_schema
+from app.models.json_schema import expense_schema
 
 
 class ValidatorErrorPrefix:

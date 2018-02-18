@@ -1,6 +1,8 @@
 from time import sleep
 from app.helpers.utils import deadline
-
+"""
+http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html
+"""
 
 @deadline(5)
 def create_table_sync(dynamodb_resource, table_name, silent_if_existing=True, **kwargs):
