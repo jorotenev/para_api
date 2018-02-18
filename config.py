@@ -3,8 +3,6 @@ import os
 from os.path import join, dirname
 from dotenv import load_dotenv
 
-
-
 local_dynamodb_url = 'http://localhost:8000'
 
 
@@ -15,6 +13,8 @@ class BaseConfig(object):
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
     CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
+
+    DB_PING_LAZY = os.environ.get("DB_PING_LAZY", False)
 
     @classmethod
     def init_app(cls, app):
@@ -38,7 +38,6 @@ class TestingConfig(DevelopmentConfig):
     @classmethod
     def init_app(cls, app):
         super(TestingConfig, cls).init_app(app)
-
 
 
 class StagingConfig(BaseConfig):
