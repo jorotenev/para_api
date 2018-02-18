@@ -66,7 +66,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
         start_from = 1
         invalid_args = [
             {
-                'start_from_property_value': '',
+                'start_from_property_value': 'boom',
 
                 'start_from_id': sample_expenses[0]['id'],
                 'start_from_property': 'timestamp_utc',
@@ -83,12 +83,10 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
                 'start_from_property_value': utc_now_str().replace('Z', '+00:00'),  # invalid for a ts to end in +00:00
                 'start_from_property': 'timestamp_utc',
                 'start_from_id': 'some str',
-            },
-            {
             }
-
         ]
         for args in invalid_args:
+            mocked_db.get_list.return_value = []
             raw_resp = self.get(url=endpoint, url_args={'start_id': start_from, 'batch_size': batch_size})
 
             self.assertEqual(raw_resp.status_code, 400, "args should have been rejected" + str(args))
