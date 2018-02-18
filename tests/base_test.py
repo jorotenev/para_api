@@ -3,8 +3,6 @@ from os.path import dirname, join
 from dotenv import load_dotenv
 from flask import url_for, Response
 
-dotenv_path = join(dirname(__file__), '../.env_test')  # will fail silently if file is missing
-load_dotenv(dotenv_path, verbose=True)
 
 from config import EnvironmentName
 from app import create_app
