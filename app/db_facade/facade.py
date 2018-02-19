@@ -191,12 +191,13 @@ class __DbFacade(object):
         :raises
         """
 
-    def update(self, expense, user_uid):
+    def update(self, expense, old_expense, user_uid):
         """
 
-        :param expense: a valid expense object with an `id`
+        :param expense: a valid expense object with an `id`. the updated expense.
+        :param old_expense: a valid expense object with an `id`. the state of `expense` before it was updated
         :param user_uid:
-        :return: upon success, the expense, but with update timestamp_utc_updated
+        :return: upon success, the expense, but with updated timestamp_utc_updated
         :raises ValueError - expense doesn't have the `id` set to a non-None value
         :raises NoExpenseWithThisId
         :raises NoSuchUser

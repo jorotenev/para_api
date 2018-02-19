@@ -30,14 +30,3 @@ class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest):
         self.assertEqual(404, raw_resp.status_code, "Should have returned a 404 for a non-managed expense")
         self.assertIn(ApiError.NO_EXPENSE_WITH_THIS_ID, raw_resp.get_data(as_text=True))
 
-
-@patch(db_facade_path, autospec=True)
-class TestUpdateAndDbFacade(BaseTestWithHTTPMethodsMixin, BaseTest):
-    def test_normal_usage(self, mocked_db: type(db_facade)):
-        updated = SINGLE_EXPENSE.copy()
-        updated['timestamp_utc_updated'] = utc_now_str()
-        mocked_db.update.return_value = updated
-
-        self.assertTrue(mocked_db.update.called)
-        args, _ = mocked_db.update.call_args
-        self.assertEqual(args, [updated, self.firebase_uid])
