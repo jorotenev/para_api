@@ -18,6 +18,7 @@ class ApiError:
     INVALID_EXPENSE = "The expense doesn't match the expected format"
     INVALID_ORDER_PARAM = "Invalid value for ordering direction. Allowed: [%s]" % ", ".join(
         [o.name for o in OrderingDirection])
+    PREVIOUS_STATE_OF_EXP_MISSING = "When updating an expense, both the update expense and its previous state are required"
 
 
 @expenses_api.route("/test", methods=['GET'])
