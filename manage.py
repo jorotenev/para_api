@@ -5,7 +5,6 @@ from os.path import dirname, join
 from dotenv import load_dotenv
 
 from app.helpers.time import ensure_ts_str_ends_with_z
-from tests.common_methods import TESTER_USER_FIREBASE_UID
 
 dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
 load_dotenv(dotenv_path, verbose=True)
@@ -13,6 +12,7 @@ load_dotenv(dotenv_path, verbose=True)
 from app import create_app
 from config import EnvironmentName
 
+app_mode = None
 try:
     app_mode = os.environ['APP_STAGE']
 
@@ -59,7 +59,7 @@ def delete_expenses_table():
 def seed_data():
     import uuid, datetime
     from app.db_facade.facade import db_facade
-
+    from flask import current_app
     seed = {
         "id": "",
         "name": "",
@@ -79,7 +79,7 @@ def seed_data():
 
     for i in range(1, 26):
         temp = seed.copy()
-        temp['user_uid'] = TESTER_USER_FIREBASE_UID
+        temp['user_uid'] = current_app.config['TEST_FIREBASE_UID']
         temp['id'] = str(uuid.uuid4())
         temp['name'] = 'server id ' + str(i)
         temp['timestamp_utc'] = temp['timestamp_utc_created'] = temp[

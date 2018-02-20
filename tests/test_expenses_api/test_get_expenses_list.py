@@ -3,10 +3,11 @@ from unittest.mock import patch
 
 from app.db_facade.misc import OrderingDirection
 from app.helpers.time import utc_now_str
+from app.models.expense_validation import Validator
 from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from json import loads
 
-from tests.common_methods import is_valid_expense, sample_expenses
+from tests.common_methods import  sample_expenses
 from tests.test_expenses_api import db_facade_path
 
 from app.expenses_api.views import MAX_BATCH_SIZE, ApiError, db_facade
@@ -56,7 +57,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertTrue(property_values[0] > property_values[1],
                         'The first result should be with the highest property value')
 
-        self.assertTrue(all([is_valid_expense(exp) for exp in json_resp]),
+        self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json_resp]),
                         "All returned objects must be valid expenses")
 
         self.assertLess(json_resp[0][self.start_from_property], reversed_expenses[0][self.start_from_property],

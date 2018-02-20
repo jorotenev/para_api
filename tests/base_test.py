@@ -1,22 +1,19 @@
 import json
 import unittest
-from os.path import dirname, join
-from dotenv import load_dotenv
 from flask import url_for, Response, current_app
 
 from config import EnvironmentName
 from app import create_app
-from tests.common_methods import TESTER_USER_FIREBASE_UID
 
 
 class BaseTest(unittest.TestCase):
-    firebase_uid = TESTER_USER_FIREBASE_UID
+    firebase_uid = 'not set yet'
 
     # on class creation
     @classmethod
     def setUpClass(cls):
         cls.app = create_app(config_name=EnvironmentName.testing)
-
+        cls.firebase_uid = cls.app.config['TEST_FIREBASE_UID']
         # this is needed to make url_for work
         cls.app.config['SERVER_NAME'] = 'localhost'
 

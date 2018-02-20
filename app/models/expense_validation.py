@@ -34,6 +34,11 @@ class Validator:
             return False
 
     @staticmethod
+    def validate_expense_simple(exp):
+        is_valid, _ = Validator.validate_expense(exp)
+        return is_valid
+
+    @staticmethod
     def validate_expense(exp):
         """
         :param exp: a dictionary.

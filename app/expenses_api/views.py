@@ -5,7 +5,6 @@ from app.db_facade import db_facade
 from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId
 from app.db_facade.misc import OrderingDirection
 from app.models.expense_validation import Validator
-from tests.common_methods import TESTER_USER_FIREBASE_UID
 from . import expenses_api
 from app.models.json_schema import expense_schema
 from functools import wraps
@@ -14,7 +13,7 @@ from functools import wraps
 def needs_firebase_uid(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        firebase_token = TESTER_USER_FIREBASE_UID  # TODO
+        firebase_token = current_app.config['TEST_FIREBASE_UID']  # TODO
         try:
             request.headers[current_app.config['CUSTOM_AUTH_HEADER_NAME']]
         except:

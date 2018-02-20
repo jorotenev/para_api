@@ -1,8 +1,9 @@
 from json import loads, dumps
 from unittest.mock import patch
+from app.models.expense_validation import Validator
 from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from app.models.sample_expenses import sample_expenses
-from tests.common_methods import is_valid_expense, is_number, SINGLE_EXPENSE
+from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.sync'
@@ -23,8 +24,8 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
         json = loads(raw_resp.get_data(as_text=True))
 
         self.assertTrue(type(json) == list)
-        self.assertTrue(all([is_valid_expense(exp) for exp in json['to_add']]))
-        self.assertTrue(all([is_valid_expense(exp) for exp in json['to_update']]))
+        self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json['to_add']]))
+        self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json['to_update']]))
         self.assertTrue(all([type(e) == str for e in json['to_remove']]))
 
     def test_fails_on_invalid_payload(self, _):

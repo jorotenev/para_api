@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from app.expenses_api.views import ApiError
 from tests.base_test import  BaseTest, BaseTestWithHTTPMethodsMixin
-from tests.common_methods import SINGLE_EXPENSE, is_valid_expense
+from tests.common_methods import SINGLE_EXPENSE, Validator
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.persist'
@@ -21,7 +21,7 @@ class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertEqual(200, raw_resp.status_code)
 
         json = loads(raw_resp.get_data(as_text=True))
-        self.assertTrue(is_valid_expense(json))
+        self.assertTrue(Validator.validate_expense_simple(json))
 
         to_persist['id'] = json['id']  # put it lipstick...
         self.assertDictEqual(to_persist, json, "The returned expense must be the same ")

@@ -1,12 +1,11 @@
-import json
 from json import loads
 from unittest.mock import patch
 
 from app.db_facade.facade import NoExpenseWithThisId
-from app.expenses_api.views import ApiError, db_facade
-from app.helpers.time import utc_now_str
+from app.expenses_api.views import ApiError
+from app.models.expense_validation import Validator
 from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
-from tests.common_methods import SINGLE_EXPENSE, is_valid_expense
+from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.update'
@@ -25,7 +24,7 @@ class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest):
 
         self.assertEqual(200, raw_resp.status_code)
         exp_json = loads(raw_resp.get_data(as_text=True))
-        self.assertTrue(is_valid_expense(exp_json))
+        self.assertTrue(Validator.validate_expense_simple(exp_json))
 
         # the facade would have updated these (tested in the db facade tests)
         del exp_json['timestamp_utc_updated']
@@ -49,7 +48,7 @@ class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest):
         self.assertEqual(404, raw_resp.status_code, "Should have returned a 404 for a non-managed expense")
         self.assertIn(ApiError.NO_EXPENSE_WITH_THIS_ID, raw_resp.get_data(as_text=True))
 
-    def test_400_if_ids_dont_match(self,_):
+    def test_400_if_ids_dont_match(self, _):
         data = {
             'updated': {**SINGLE_EXPENSE},
             'previous_state': {**SINGLE_EXPENSE, 'id': 'musaka'}

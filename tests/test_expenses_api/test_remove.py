@@ -31,10 +31,11 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_400_on_invalid_expense(self, mocked_db):
         mocked_db.remove.side_effect = RuntimeError("Shouldn't be called")
-        invalid_expenses = []
 
+        invalid_expenses = []
         invalid_expenses.append({**sample_expenses[0], 'timestamp_utc': ''})
         invalid_expenses.append({**sample_expenses[0], 'id': ''})
+
         for invalid_expense in invalid_expenses:
             raw_resp = self.delete(url=endpoint, data=invalid_expense)
             self.assertEqual(400, raw_resp.status_code)

@@ -1,4 +1,7 @@
+from app.db_facade.facade import NoExpenseWithThisId
+from app.helpers.time import utc_now_str
 from app.models.sample_expenses import sample_expenses
+from tests.common_methods import SINGLE_EXPENSE
 from tests.test_db_facade.test_db_base import DbTestBase
 
 seed_data = DbTestBase.withSeedDataDecorator
@@ -18,6 +21,22 @@ class TestRemove(DbTestBase):
             },
             ConsistentRead=True)
         self.assertNotIn("Item", search_deleted)  # flaky. not sure what the empty response looks like atm
+
+    @seed_data
+    def test_errors_on_no_such_expense(self):
+        """
+        remove() should raise an exception in either cases:
+        * an expense with the same SORT key attribute doesn't exist
+        * an expense with the same `id` attribute doesn't exist
+        """
+        assert self.expenses_table.item_count
+        exp = SINGLE_EXPENSE.copy()
+        non_persisted_expenses = []
+        non_persisted_expenses.append({**exp, 'id': 'boom'})
+        non_persisted_expenses.append({**exp, 'timestamp_utc': utc_now_str()})
+
+        for e in non_persisted_expenses:
+            self.assertRaises(NoExpenseWithThisId, self.facade.remove, e, self.firebase_uid)
 
     def test_delete_expense_of_correct_user(self):
         self.seedData(firebase_uid='one')

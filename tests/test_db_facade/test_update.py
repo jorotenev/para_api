@@ -1,7 +1,5 @@
-from time import sleep
-
-from app.db_facade.facade import NoExpenseWithThisId, escaped_attr_names, sanitize_expense
-from tests.common_methods import is_valid_expense
+from app.db_facade.facade import NoExpenseWithThisId, sanitize_expense
+from app.models.expense_validation import Validator
 from tests.test_db_facade.test_db_base import DbTestBase
 from app.models.sample_expenses import sample_expenses
 
@@ -21,7 +19,7 @@ class TestUpdate(DbTestBase):
         to_update['amount'] = new_amount
 
         updated = self.facade.update(to_update, old_expense, self.firebase_uid)
-        self.assertTrue(is_valid_expense(updated))
+        self.assertTrue(Validator.validate_expense_simple(updated))
 
         # check the item in the database now
         exp_from_db = self.expenses_table.get_item(
@@ -32,7 +30,7 @@ class TestUpdate(DbTestBase):
             ConsistentRead=True)['Item']
 
         exp_from_db = self.facade.converter.convertFromDbFormat(sanitize_expense(exp_from_db))
-        self.assertTrue(is_valid_expense(exp_from_db))
+        self.assertTrue(Validator.validate_expense_simple(exp_from_db))
 
         self.assertEqual(exp_from_db['id'], old_expense['id'])
         self.assertEqual(exp_from_db['amount'], new_amount)
@@ -79,4 +77,5 @@ class TestUpdate(DbTestBase):
             self.facade._standard_update(expense=persisted, user_uid=persisted['user_uid'])
             assert False
         except Exception as err:
-            self.assertIn("no expense at rest found to update or the id of the expense at rest is not the same", str(err))
+            self.assertIn("no expense at rest found to update or the id of the expense at rest is not the same",
+                          str(err))

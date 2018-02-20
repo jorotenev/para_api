@@ -9,9 +9,9 @@ from app.db_facade.misc import OrderingDirection
 from app.db_facade.table_schema import index_for_property
 from app.helpers.time import utc_now_str
 from app.helpers.utils import deadline
+from app.models.expense_validation import Validator
 from app.models.json_schema import expense_properties
 from config import EnvironmentName
-from tests.common_methods import is_valid_expense
 from .dynamodb.reserved_attr_names import reserved_attr_names
 from .table_schema import range_key, hash_key
 
@@ -216,7 +216,7 @@ class __DbFacade(object):
 
         result = self.expenses_table.query(**query_kwargs)['Items']
         result = [self.converter.convertFromDbFormat(e) for e in result]
-        ready_expenses = list(filter(is_valid_expense, result))
+        ready_expenses = list(filter(Validator.validate_expense_simple, result))
 
         if len(ready_expenses) is not len(result):
             warnings.warn("%i invalid expenses in the response were discarded!" % (len(ready_expenses) - len(result)))
@@ -269,11 +269,17 @@ class __DbFacade(object):
         """
         :param expense: expense object
         :param user_uid:
-        :return: boolean True on successful deletion
-        :raises NoSuchUser
+        :return: None
         :raises NoExpenseWithThisId
         :returns void
         """
+        self.expenses_table.delete_item(
+            Key={
+                'user_uid': user_uid,
+                'timestamp_utc': expense['timestamp_utc']
+            },
+            ConditionExpression=Attr('id').eq(expense['id'])
+        )
 
     def sync(self, sync_request_objs, user_uid):
         """

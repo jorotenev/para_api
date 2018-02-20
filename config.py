@@ -4,6 +4,7 @@ from os.path import join, dirname
 from dotenv import load_dotenv
 
 local_dynamodb_url = 'http://localhost:8000'
+fake_uid = 'fake firebase uid'
 
 
 class BaseConfig(object):
@@ -24,6 +25,7 @@ class BaseConfig(object):
 
 class DevelopmentConfig(BaseConfig):
     LOCAL_DYNAMODB_URL = local_dynamodb_url
+    TEST_FIREBASE_UID = fake_uid
 
     @classmethod
     def init_app(cls, app):
@@ -32,6 +34,7 @@ class DevelopmentConfig(BaseConfig):
 
 class TestingConfig(DevelopmentConfig):
     LOCAL_DYNAMODB_URL = local_dynamodb_url
+    TEST_FIREBASE_UID = fake_uid
 
     TESTING = True
     CI = os.environ.get("CI", False)

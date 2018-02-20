@@ -1,5 +1,6 @@
 from app.db_facade.facade import PersistFailed
-from tests.common_methods import SINGLE_EXPENSE, is_valid_expense
+from app.models.expense_validation import Validator
+from tests.common_methods import SINGLE_EXPENSE
 from tests.test_db_facade.test_db_base import DbTestBase
 
 seed_data = DbTestBase.withSeedDataDecorator
@@ -12,7 +13,7 @@ class TestPersist(DbTestBase):
         expense_to_persist['id'] = None
 
         persisted = self.facade.persist(expense_to_persist, user_uid=self.firebase_uid)
-        self.assertTrue(is_valid_expense(persisted))
+        self.assertTrue(Validator.validate_expense_simple(persisted))
 
         self.assertIsNotNone(persisted['id'])
         self.assertNotEqual(expense_to_persist['timestamp_utc_created'], persisted['timestamp_utc_created'],
