@@ -273,13 +273,21 @@ class __DbFacade(object):
         :raises NoExpenseWithThisId
         :returns void
         """
-        self.expenses_table.delete_item(
-            Key={
-                'user_uid': user_uid,
-                'timestamp_utc': expense['timestamp_utc']
-            },
-            ConditionExpression=Attr('id').eq(expense['id'])
-        )
+        try:
+            self.expenses_table.delete_item(
+                Key={
+                    'user_uid': user_uid,
+                    'timestamp_utc': expense['timestamp_utc']
+                },
+                # ensure that the expense at rest has the same `id` AND that the expense at rest exists at all
+                ConditionExpression=And(Attr('id').eq(expense['id']), Attr(self.RANGE_KEY).exists())
+            )
+        except Exception as err:
+            if "ConditionalCheckFailedException" in str(err):
+                # either there's not exepnse with such Key,or the expense at rest has different `id`.
+                raise NoExpenseWithThisId()
+            else:
+                raise err
 
     def sync(self, sync_request_objs, user_uid):
         """
