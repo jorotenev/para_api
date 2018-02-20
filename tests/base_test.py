@@ -1,8 +1,8 @@
+import json
 import unittest
 from os.path import dirname, join
 from dotenv import load_dotenv
 from flask import url_for, Response
-
 
 from config import EnvironmentName
 from app import create_app
@@ -58,7 +58,7 @@ class BaseTestWithHTTPMethodsMixin(object):
                       headers={}) -> Response:
         """
         :arg method [str] - the name of the http method
-        :arg data [dict] - a dict with the payload
+        :arg data [dict] - a dict with the payload. it will jsonified before passing to the test client
         :arg url  [string] - endpoint (NOT a ready url) e.g. main.index and *not* just /
         :arg url_args - these will be passed as url query arguments:
             e.g. in /user&id=1 id=1 would have been made by url_args={'id':1}
@@ -68,8 +68,10 @@ class BaseTestWithHTTPMethodsMixin(object):
         :returns the data of the response (e.g. the return of the view function of the server)
         """
         common_args = [url_for(url, **url_for_args, _external=True)]
+        if data and not isinstance(data, dict):
+            raise ValueError("If the data attr is set, it has to be a dict.")
         common_kwargs = {
-            "data": data,
+            "data": json.dumps(data) if data else None,
             "follow_redirects": True,
             "query_string": url_args,
             'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]
