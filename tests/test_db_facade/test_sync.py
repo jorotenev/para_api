@@ -50,7 +50,7 @@ class TestSync(DbTestBase):
         new_expense['timestamp_utc_created'] = utc_now_str()
         new_expense['timestamp_utc_updated'] = utc_now_str()
         new_expense['user_uid'] = self.firebase_uid
-        self.expenses_table._put_item(Item=new_expense)
+        self.expenses_table._facade_put_item(Item=new_expense)
 
         # now verify that sync() returns correct result
         sync_result = self.facade.sync(sample_expenses, self.firebase_uid)

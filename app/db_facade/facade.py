@@ -242,15 +242,13 @@ class __DbFacade(object):
         :param old_expense: a valid expense object with an `id`. the state of `expense` before it was updated
         :param user_uid:
         :return: upon success, the expense, but with updated timestamp_utc_updated
+
         :raises ValueError - expense doesn't have the `id` set to a non-None value or the id of the new
                              and old versions don't match
         :raises NoExpenseWithThisId - if there's not expense at rest that has the same `id`. This will be raised
-        either when there's not expense with the same key, or when the expense at rest has a different id (which
-        is not a valid application state).
-
-        :raises NoSuchUser
+        either when there's no expense with the same key, or when the expense at rest has a different id (which
+        is not a valid application state) than `expense`.
         """
-        # https://stackoverflow.com/a/30314563/4509634 You can use UpdateItem to update any nonkey attributes.
         expense = expense.copy()
         old_expense = old_expense.copy()
 
@@ -262,6 +260,7 @@ class __DbFacade(object):
         if expense[self.RANGE_KEY] == old_expense[self.RANGE_KEY]:
             self._standard_update(expense, user_uid)
         else:
+            # https://stackoverflow.com/a/30314563/4509634 You can use UpdateItem to update any nonkey attributes.
             self._two_phase_update(expense, old_expense, user_uid)
 
         return expense
@@ -342,10 +341,13 @@ class __DbFacade(object):
                 'user_uid': user_uid,
                 'timestamp_utc': old_expense['timestamp_utc']
             })
-            self._put_item(batch, expense=expense, user_uid=user_uid)
+            self._facade_put_item(batch, expense=expense, user_uid=user_uid)
 
-    def _put_item(self, context, expense, user_uid):
+    def _facade_put_item(self, context, expense, user_uid):
         """
+        prepares an expense for persisting and writes it to the db.
+        returns the item that was written to the db
+
         :param context: either a Table object or a  batch_writer (http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#DynamoDB.Table.batch_writer)
         :param expense: as received by the client. id is None
         :param user_uid:
