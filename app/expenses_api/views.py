@@ -1,12 +1,27 @@
 import json
-from flask import request
-from app.api_utils.response import make_json_response
+from flask import request, current_app
+from app.api_utils.response import make_json_response, make_error_response
 from app.db_facade import db_facade
 from app.db_facade.facade import MAX_BATCH_SIZE
 from app.db_facade.misc import OrderingDirection
 from app.models.expense_validation import Validator
+from tests.common_methods import TESTER_USER_FIREBASE_UID
 from . import expenses_api
 from app.models.json_schema import expense_schema
+from functools import wraps
+
+
+def needs_firebase_uid(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        firebase_token = TESTER_USER_FIREBASE_UID  # TODO
+        try:
+            request.headers[current_app.config['CUSTOM_AUTH_HEADER_NAME']]
+        except:
+            return make_error_response("can't find auth token", status_code=403)
+        return f(*args, **kwargs, user_uid=firebase_token)
+
+    return decorated
 
 
 class ApiError:
@@ -27,8 +42,8 @@ def test():
 
 
 @expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
-# TODO mark as protected
-def honeypot():
+@needs_firebase_uid
+def honeypot(user_uid=None):
     """
     endpoint used to verify that protected routes require auth
     :return:
@@ -47,7 +62,8 @@ def validate_get_expenses_list_property_value(property_name, property_value, non
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])
-def get_expenses_list():
+@needs_firebase_uid
+def get_expenses_list(user_uid=None):
     property_name = request.args.get('start_from_property', default='timestamp_utc')
     property_value = request.args.get('start_from_property_value', default=None)
     ordering_direction = request.args.get("ordering_direction", default='desc')
@@ -75,9 +91,11 @@ def get_expenses_list():
     ordering_direction = OrderingDirection[ordering_direction]
 
     response = db_facade.get_list(property_value=property_value,
+        property_value=property_value,
                                   property_name=property_name,
                                   ordering_direction=ordering_direction,
                                   user_uid='fake firebase uid'
+        batch_size=batch_size
                                   )
 
     return make_json_response(response)
@@ -94,7 +112,8 @@ def persist():
 
 
 @expenses_api.route('/update', methods=['PUT'])
-def update():
+@needs_firebase_uid
+def update(user_uid=None):
     return '{}'
 
 
