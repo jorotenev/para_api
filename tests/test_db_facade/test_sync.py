@@ -7,11 +7,11 @@ from tests.test_db_facade.test_db_base import DbTestBase
 seed_data = DbTestBase.withSeedDataDecorator
 
 
-def delete(table, exp_to_delete, user_uid):
+def delete(table, exp_to_delete, user_uid, converter):
     exp_to_delete = sample_expenses[1]
     return table.delete_item(
         Key={
-            'timestamp_utc': exp_to_delete,
+            'timestamp_utc': converter.convertToDbFormat(exp_to_delete),
             'user_uid': user_uid
         },
         ReturnValues="ALL_OLD"
@@ -37,7 +37,8 @@ class TestSync(DbTestBase):
             })
         # delete an item
         exp_to_delete = sample_expenses[1]
-        resp = delete(table=self.expenses_table, exp_to_delete=exp_to_delete, user_uid=self.firebase_uid)
+        resp = delete(table=self.expenses_table, exp_to_delete=exp_to_delete, user_uid=self.firebase_uid,
+                      converter=self.facade.converter)
         self.assertIn("Attributes", resp.keys(), "If missing, the delete operation didn't delete the specified entry")
         deleted_exp = resp['Attributes']
         self.assertEqual(deleted_exp['amount'], exp_to_delete['amount'])
@@ -49,7 +50,7 @@ class TestSync(DbTestBase):
         new_expense['timestamp_utc_created'] = utc_now_str()
         new_expense['timestamp_utc_updated'] = utc_now_str()
         new_expense['user_uid'] = self.firebase_uid
-        self.expenses_table.put_item(Item=new_expense)
+        self.expenses_table._put_item(Item=new_expense)
 
         # now verify that sync() returns correct result
         sync_result = self.facade.sync(sample_expenses, self.firebase_uid)

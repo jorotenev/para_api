@@ -23,7 +23,7 @@ class TestRemove(DbTestBase):
         self.seedData(firebase_uid='one')
         self.seedData(firebase_uid='two')
 
-        assert len(self.expenses_table.item_count) == len(sample_expenses) * 2
+        assert self.expenses_table.item_count == len(sample_expenses) * 2
 
         def get_expenses_of(user): return self.facade.get_list(property_value=None,
                                                                property_name='timestamp_utc',
