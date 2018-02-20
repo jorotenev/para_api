@@ -54,7 +54,7 @@ class TestRemove(DbTestBase):
         self.facade.remove(to_delete, 'one')
 
         after_deleting = get_expenses_of('one')
-        ids_after_deleting = [exp['ids'] for exp in after_deleting]
+        ids_after_deleting = [exp['id'] for exp in after_deleting]
         self.assertEqual(len(sample_expenses) - 1, len(after_deleting))
         self.assertNotIn(to_delete['id'], ids_after_deleting)
 
