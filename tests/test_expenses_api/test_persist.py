@@ -2,7 +2,7 @@ from json import loads
 from unittest.mock import patch
 
 from app.expenses_api.views import ApiError
-from tests.base_test import  BaseTest, BaseTestWithHTTPMethodsMixin
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from tests.common_methods import SINGLE_EXPENSE, Validator
 from tests.test_expenses_api import db_facade_path
 
@@ -33,7 +33,7 @@ class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertIn(ApiError.ID_PROPERTY_FORBIDDEN, raw_resp.get_data(as_text=True))
 
     def test_fail_on_invalid_expense(self, _):
-        raw_resp = self.post(url=endpoint, data={id: None})
+        raw_resp = self.post(url=endpoint, data={"id": None})
 
         self.assertEqual(400, raw_resp.status_code)
         self.assertIn(ApiError.INVALID_EXPENSE, raw_resp.get_data(as_text=True))

@@ -31,9 +31,10 @@ class TestRemove(DbTestBase):
         """
         assert self.expenses_table.item_count
         exp = SINGLE_EXPENSE.copy()
-        non_persisted_expenses = []
-        non_persisted_expenses.append({**exp, 'id': 'boom'})
-        non_persisted_expenses.append({**exp, 'timestamp_utc': utc_now_str()})
+        non_persisted_expenses = [
+            {**exp, 'id': 'boom'},
+            {**exp, 'timestamp_utc': utc_now_str()}
+        ]
 
         for e in non_persisted_expenses:
             self.assertRaises(NoExpenseWithThisId, self.facade.remove, e, self.firebase_uid)

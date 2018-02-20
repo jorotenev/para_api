@@ -1,5 +1,7 @@
 from json import loads, dumps
 from unittest.mock import patch
+
+from app.helpers.time import utc_now_str
 from app.models.expense_validation import Validator
 from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from app.models.sample_expenses import sample_expenses
@@ -19,8 +21,7 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
             'to_update': [sample_expenses[1]]
         })
 
-        payload = dumps(sample_expenses)
-        raw_resp = self.get(url=endpoint, data=payload)
+        raw_resp = self.get(url=endpoint, data=sample_expenses)
         json = loads(raw_resp.get_data(as_text=True))
 
         self.assertTrue(type(json) == list)
@@ -29,6 +30,11 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertTrue(all([type(e) == str for e in json['to_remove']]))
 
     def test_fails_on_invalid_payload(self, _):
-        payload = '[{"something":1}]'
-        raw_resp = self.get(url=endpoint, data=payload)
-        self.assertEqual(raw_resp.status_code, 400)
+        invalid_payloads = [
+            [{"timestamp_utc_updated": 'asd', 'id': 'a'}],
+            [{"timestamp_utc_updated": utc_now_str(), 'id': None}],
+            [{"timestamp_utc_updated": utc_now_str()}]
+        ]
+        for payload in invalid_payloads:
+            raw_resp = self.get(url=endpoint, data=payload)
+            self.assertEqual(raw_resp.status_code, 400)

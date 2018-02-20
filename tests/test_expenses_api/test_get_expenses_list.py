@@ -114,10 +114,6 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
 
         self.assertFalse(mocked_db.get_list.called)
 
-    def test_only_user_expenses_are_returned(self, _):
-        self.assertTrue(False, "Only expenses belonging to the requesting user are send")
-
-
 @patch(db_facade_path, autospec=True)
 class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_call_on_good_request(self, mocked_db: type(db_facade)):
