@@ -1,17 +1,19 @@
+import uuid
 import warnings
-import boto3
-from boto3.dynamodb.conditions import Key, And
 from decimal import Decimal
 
-from app.db_facade.misc import OrderingDirection
-from app.helpers.utils import deadline
-from app.db_facade.table_schema import index_for_property
-from app.models.json_schema import expense_properties
+import boto3
+from boto3.dynamodb.conditions import Key, And, Attr
 
+from app.db_facade.misc import OrderingDirection
+from app.db_facade.table_schema import index_for_property
+from app.helpers.time import utc_now_str
+from app.helpers.utils import deadline
+from app.models.json_schema import expense_properties
 from config import EnvironmentName
 from tests.common_methods import is_valid_expense
-from .table_schema import range_key, hash_key
 from .dynamodb.reserved_attr_names import reserved_attr_names
+from .table_schema import range_key, hash_key
 
 """
 http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html
@@ -30,7 +32,16 @@ for property in expense_properties:
     escaped_attr_names[safe_property_name] = property
 
 
-class ItemConverter(object):
+def touch_timestamp(expense, ts_property):
+    assert ts_property in expense
+    expense[ts_property] = utc_now_str()
+
+
+class ExpenseConverter(object):
+    """
+    responsible for converting expenses from/to format accepted by DynamoDB
+    """
+
     def convertToDbFormat(self, exp: dict):
         copy = exp.copy()
         for key, value in copy.items():
@@ -56,13 +67,44 @@ class ItemConverter(object):
             return num
 
 
+def sanitize_expense(exp):
+    """
+    Removes any properties from an expense that should only exist within the facade
+    and should not be visible for the clients of the facade
+    :param exp:
+    :return:
+    """
+    if 'user_uid' in exp:
+        del exp['user_uid']
+    return exp
+
+
+def sanitize_response_decorator(expected_type):
+    def decorate(f):
+        def new_f(*args, **kwargs):
+            resp = f(*args, **kwargs)
+
+            assert type(resp) == expected_type
+
+            if expected_type == dict:
+                return sanitize_expense(resp)
+            elif expected_type == list:
+                return list(map(sanitize_expense, resp))
+            else:
+                raise ValueError()
+
+        return new_f
+
+    return decorate
+
+
 class __DbFacade(object):
     EXPENSES_TABLE_NAME_PREFIX = 'expenses-'
     HASH_KEY = hash_key
     RANGE_KEY = range_key
     EXPENSES_TABLE_NAME = EXPENSES_TABLE_NAME_PREFIX
 
-    converter = ItemConverter()
+    converter = ExpenseConverter()
     reserved_dynamodb_words = ['name']
 
     def __init__(self):
@@ -121,6 +163,7 @@ class __DbFacade(object):
             warnings.warn("%i is above MAX_BATCH_SIZE=%i. Capping the parameter to the max allowed value." % (
                 batch_size, MAX_BATCH_SIZE))
 
+    @sanitize_response_decorator(list)
     def get_list(self,
                  property_value,
                  user_uid,
@@ -145,8 +188,6 @@ class __DbFacade(object):
         property_is_main_sort_key = index_for_property[property_name] is None
 
         # configure the query
-        escaped_expense_properties = []
-
         query_kwargs = {
             "Select": "SPECIFIC_ATTRIBUTES",
             "ProjectionExpression": ", ".join(escaped_attr_names.keys()),
@@ -190,7 +231,10 @@ class __DbFacade(object):
         :return: the persisted expense
         :raises
         """
+        touch_timestamp(expense, 'timestamp_utc_created')
+        touch_timestamp(expense, 'timestamp_utc_updated')
 
+    @sanitize_response_decorator(dict)
     def update(self, expense, old_expense, user_uid):
         """
 
@@ -198,11 +242,29 @@ class __DbFacade(object):
         :param old_expense: a valid expense object with an `id`. the state of `expense` before it was updated
         :param user_uid:
         :return: upon success, the expense, but with updated timestamp_utc_updated
-        :raises ValueError - expense doesn't have the `id` set to a non-None value
-        :raises NoExpenseWithThisId
+        :raises ValueError - expense doesn't have the `id` set to a non-None value or the id of the new
+                             and old versions don't match
+        :raises NoExpenseWithThisId - if there's not expense at rest that has the same `id`. This will be raised
+        either when there's not expense with the same key, or when the expense at rest has a different id (which
+        is not a valid application state).
+
         :raises NoSuchUser
         """
-        pass
+        # https://stackoverflow.com/a/30314563/4509634 You can use UpdateItem to update any nonkey attributes.
+        expense = expense.copy()
+        old_expense = old_expense.copy()
+
+        if expense['id'] != old_expense['id']:
+            raise ValueError("The `id`s of the updated and the old expense don't match")
+
+        touch_timestamp(expense, 'timestamp_utc_updated')
+
+        if expense[self.RANGE_KEY] == old_expense[self.RANGE_KEY]:
+            self._standard_update(expense, user_uid)
+        else:
+            self._two_phase_update(expense, old_expense, user_uid)
+
+        return expense
 
     def remove(self, expense, user_uid):
         """
@@ -236,6 +298,65 @@ class __DbFacade(object):
         :return: int | None
         :raises  NoSuchUser
         """
+
+    def _standard_update(self, expense, user_uid):
+        """
+        given that there's already an item with the same hash and range keys,
+        use the `expense` will replace the existing item.
+        :param expense:
+        :param user_uid:
+        :return:
+        :raises NoExpenseWithThisId if there's no expense with the same key found to update
+                                    OR the expense at rest has a different `id`
+        """
+        try:
+            previous_exp = self.expenses_table.put_item(
+                Item=self.converter.convertToDbFormat({'user_uid': user_uid, **expense}),
+                ReturnValues="ALL_OLD",
+                # only replace if the item in the db and the updated item have the same id
+                ConditionExpression=Attr('id').eq(expense['id'])
+            )
+            return previous_exp['Attributes'] if 'Attributes' in previous_exp else None
+        except Exception as ex:
+            if "ConditionalCheckFailedException" in str(ex):
+                raise NoExpenseWithThisId \
+                    ("no expense at rest found to update or the id of the expense at rest is not the same. "
+                     "When trying to update the item, the item at rest had a different `id` attr")
+            else:
+                raise ex
+
+    def _two_phase_update(self, expense, old_expense, user_uid):
+        """
+        This is only needed if the change in the newly update expense was to a property that we use as a SORT key
+        in the main index
+        :param expense:
+        :param old_expense:
+        :param user_uid:
+        :return:
+        """
+
+        # delete the old expense and put the updated one in a single batch
+        # it's fine because they have different sort keys
+        with self.expenses_table.batch_writer() as batch:
+            batch.delete_item(Key={
+                'user_uid': user_uid,
+                'timestamp_utc': old_expense['timestamp_utc']
+            })
+            self._put_item(batch, expense=expense, user_uid=user_uid)
+
+    def _put_item(self, context, expense, user_uid):
+        """
+        :param context: either a Table object or a  batch_writer (http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html#DynamoDB.Table.batch_writer)
+        :param expense: as received by the client. id is None
+        :param user_uid:
+        :return: the expense, as it was persisted
+        """
+        exp = expense.copy()
+        exp['id'] = uuid.uuid4()
+        exp['user_uid'] = user_uid
+        context.put_item(Item=self.converter.convertToDbFormat(exp))
+
+        return exp
 
 
 class NoSuchUser(Exception):
