@@ -51,7 +51,7 @@ class BaseTestWithHTTPMethodsMixin(object):
     def delete(self, **kwargs):
         return self.full_response(method='DELETE', **kwargs)
 
-    def full_response(self, method='GET', data={}, url="", url_args={}, url_for_args={}, raw_response=True,
+    def full_response(self, method='GET', data=None, url="", url_args={}, url_for_args={}, raw_response=True,
                       headers=None) -> Response:
         """
         :arg method [str] - the name of the http method
@@ -67,10 +67,12 @@ class BaseTestWithHTTPMethodsMixin(object):
         headers = headers if headers is not None else [(current_app.config.get("CUSTOM_AUTH_HEADER_NAME"),
                                                         BaseTest.firebase_uid)]
         common_args = [url_for(url, **url_for_args, _external=True)]
-        if data and not isinstance(data, dict):
-            raise ValueError("If the data attr is set, it has to be a dict.")
+        jsonified = data
+        if not isinstance(data, str) and data:
+            jsonified = json.dumps(data)
+
         common_kwargs = {
-            "data": json.dumps(data) if data else None,
+            "data": jsonified if jsonified else None,
             "follow_redirects": True,
             "query_string": url_args,
             'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]
