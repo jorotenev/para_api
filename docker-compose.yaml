@@ -12,6 +12,7 @@ web:
   command: flask test
 
 dynamodb:
+  restart: always
   image: dwmkerr/dynamodb
   ports:
     - "8000:8000"

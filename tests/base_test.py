@@ -1,10 +1,8 @@
+import json
 import unittest
 from os.path import dirname, join
 from dotenv import load_dotenv
-from flask import url_for, Response
-
-dotenv_path = join(dirname(__file__), '../.env_test')  # will fail silently if file is missing
-load_dotenv(dotenv_path, verbose=True)
+from flask import url_for, Response, current_app
 
 from config import EnvironmentName
 from app import create_app
@@ -57,10 +55,10 @@ class BaseTestWithHTTPMethodsMixin(object):
         return self.full_response(method='DELETE', **kwargs)
 
     def full_response(self, method='GET', data={}, url="", url_args={}, url_for_args={}, raw_response=True,
-                      headers={}) -> Response:
+                      headers=None) -> Response:
         """
         :arg method [str] - the name of the http method
-        :arg data [dict] - a dict with the payload
+        :arg data [dict] - a dict with the payload. it will jsonified before passing to the test client
         :arg url  [string] - endpoint (NOT a ready url) e.g. main.index and *not* just /
         :arg url_args - these will be passed as url query arguments:
             e.g. in /user&id=1 id=1 would have been made by url_args={'id':1}
@@ -69,9 +67,13 @@ class BaseTestWithHTTPMethodsMixin(object):
         :arg url_for_args [dict] - will be passed to url_for when building the url for the endpoint
         :returns the data of the response (e.g. the return of the view function of the server)
         """
+        headers = headers if headers is not None else [(current_app.config.get("CUSTOM_AUTH_HEADER_NAME"),
+                                                        BaseTest.firebase_uid)]
         common_args = [url_for(url, **url_for_args, _external=True)]
+        if data and not isinstance(data, dict):
+            raise ValueError("If the data attr is set, it has to be a dict.")
         common_kwargs = {
-            "data": data,
+            "data": json.dumps(data) if data else None,
             "follow_redirects": True,
             "query_string": url_args,
             'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]

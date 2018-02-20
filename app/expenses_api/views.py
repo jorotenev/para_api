@@ -1,36 +1,40 @@
 import json
-from flask import request
-
-from app.api_utils.response import make_json_response
-from app.db_facade.facade import MAX_BATCH_SIZE
-from . import expenses_api
-from datetime import datetime as dt, timezone as tz
+from flask import request, current_app
+from app.api_utils.response import make_json_response, make_error_response
 from app.db_facade import db_facade
-
-# {
-#     "id": 10,
-#     "name": "server id 10",
-#     "amount": 95,
-#     "currency": "EUR,
-#     "tags": [
-#         "vacation",
-#         "vacation",
-#         "work"
-#     ],
-#     "timestamp_utc": "2018-02-10T18:55:40.561052+00:00"
-# }
+from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId
+from app.db_facade.misc import OrderingDirection
+from app.models.expense_validation import Validator
+from tests.common_methods import TESTER_USER_FIREBASE_UID
+from . import expenses_api
+from app.models.json_schema import expense_schema
+from functools import wraps
 
 
-MAX_ID = 50
-MAXIMUM_BATCH_SIZE = MAX_BATCH_SIZE
+def needs_firebase_uid(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        firebase_token = TESTER_USER_FIREBASE_UID  # TODO
+        try:
+            request.headers[current_app.config['CUSTOM_AUTH_HEADER_NAME']]
+        except:
+            return make_error_response("can't find auth token", status_code=403)
+        return f(*args, **kwargs, user_uid=firebase_token)
+
+    return decorated
 
 
 class ApiError:
+    IDS_OF_EXPENSES_DONT_MATCH = "When updating, the `id` properties of both the updated expense and its previous state must be the same"
+    INVALID_BATCH_SIZE = "Received an invalid batch_size. Must be >0 integer."
     BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
     INVALID_QUERY_PARAMS = "Invalid URL query parameters"
     NO_EXPENSE_WITH_THIS_ID = "Can't find an expense with this id in this account"
     ID_PROPERTY_FORBIDDEN = "The id property MUST be null"
     INVALID_EXPENSE = "The expense doesn't match the expected format"
+    INVALID_ORDER_PARAM = "Invalid value for ordering direction. Allowed: [%s]" % ", ".join(
+        [o.name for o in OrderingDirection])
+    PREVIOUS_STATE_OF_EXP_MISSING = "When updating an expense, both the update expense and its previous state are required"
 
 
 @expenses_api.route("/test", methods=['GET'])
@@ -38,28 +42,63 @@ def test():
     return 'asd' + str(db_facade.asd())
 
 
+@expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
+@needs_firebase_uid
+def honeypot(user_uid=None):
+    """
+    endpoint used to verify that protected routes require auth
+    :return:
+    """
+    return 'sweet'
+
+
+def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
+    assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
+    if not none_is_ok and property_value is None:
+        assert "%s cannot be None" % property_name
+
+    if property_value is not None:
+        assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
+                                                                           (str(property_value), property_name)
+
+
 @expenses_api.route("/get_expenses_list", methods=['GET'])
-def get_expenses_list():
-    start_id = request.args.get('start_id', type=int, default=MAX_ID)
-    start_id = min(start_id, MAX_ID)  # TODO
+@needs_firebase_uid
+def get_expenses_list(user_uid=None):
+    property_name = request.args.get('start_from_property', default='timestamp_utc')
+    property_value = request.args.get('start_from_property_value', default=None)
+    ordering_direction = request.args.get("ordering_direction", default='desc')
+    expense_id = request.args.get("start_from_id", default=None)
     batch_size = request.args.get('batch_size', type=int, default=10)
 
-    response = []
-    last_id = max(1, start_id - batch_size + 1)
+    try:
+        validate_get_expenses_list_property_value(property_name, property_value)
+        assert OrderingDirection.is_member(ordering_direction), ApiError.INVALID_ORDER_PARAM
 
-    for i in range(last_id, start_id + 1):
-        response.append({
-            "id": i,
-            "name": "server id %s" % str(i),
-            "amount": i * 10 + 1,
-            "currency": "EUR",
-            "tags": [] if i % 2 == 0 else ['vacation', 'work'],
-            'timestamp_utc': dt.now(tz.utc).isoformat(),
-            'timestamp_utc_created': dt.now(tz.utc).isoformat(),
-            'timestamp_utc_updated': dt.now(tz.utc).isoformat(),
-        })
+        if property_value:
+            assert expense_id, "If a property_value is set, the start_from_id is mandatory"
 
-    response.sort(key=lambda expense: expense['id'], reverse=True)
+        assert batch_size < MAX_BATCH_SIZE, ApiError.BATCH_SIZE_EXCEEDED
+        assert batch_size > 0, ApiError.INVALID_BATCH_SIZE
+    except AssertionError as ex:
+        status_code = 400
+        if ApiError.BATCH_SIZE_EXCEEDED in str(ex):
+            status_code = 413
+
+        return make_json_response(json.dumps({
+            'error': "%s. %s" % (ApiError.INVALID_QUERY_PARAMS, str(ex))
+        }), status_code=status_code)
+
+    ordering_direction = OrderingDirection[ordering_direction]
+
+    response = db_facade.get_list(
+        property_value=property_value,
+        property_name=property_name,
+        ordering_direction=ordering_direction,
+        user_uid=user_uid,
+        batch_size=batch_size
+    )
+
     return make_json_response(response)
 
 
@@ -74,8 +113,37 @@ def persist():
 
 
 @expenses_api.route('/update', methods=['PUT'])
-def update():
-    return '{}'
+@needs_firebase_uid
+def update(user_uid=None):
+    request_data = request.get_json(force=True, silent=True)
+    is_valid, error_msg = validate_update_request(request_data)
+    if not is_valid:
+        return make_error_response(error_msg, 400)
+
+    try:
+        result = db_facade.update(request_data['updated'], request_data['previous_state'], user_uid)
+        return make_json_response(result)
+    except NoExpenseWithThisId as err:
+        return make_error_response(ApiError.NO_EXPENSE_WITH_THIS_ID, status_code=404)
+    except ValueError as err:
+        return make_error_response(ApiError.IDS_OF_EXPENSES_DONT_MATCH, status_code=400)
+
+
+def validate_update_request(request_data):
+    try:
+        assert request_data, "Empty request body"
+        assert 'updated' in request_data, '`updated` field not in the request body'
+        assert 'previous_state' in request_data, ApiError.PREVIOUS_STATE_OF_EXP_MISSING
+
+        check_valid = [('updated', request_data['updated']), ('previous_state', request_data['previous_state'])]
+        for field, value in check_valid:
+            is_valid, _ = Validator.validate_expense(value)
+            assert is_valid, "%s is not a valid expense" % field
+            assert 'id' in value, 'The `id` field is mandatory'
+    except AssertionError as err:
+        return False, str(err)
+
+    return True, None
 
 
 @expenses_api.route('/remove/<int:expense_id>', methods=['DELETE'])

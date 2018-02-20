@@ -13,10 +13,10 @@ class ExampleTest(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     @patch('app.api.views.db_facade', autospec=True)
     def test_mock(self, mocked_facade):
-        mocked_facade.asd.return_value = 'booom :)'
+        mocked_facade.ping_db.return_value = 'booom :)'
         raw_resp = self.get('api.test')
         assert raw_resp.status_code == 200
-        self.assertTrue(mocked_facade.asd.called, 'the mock wasn\'t called')
+        self.assertTrue(mocked_facade.ping_db.called, 'the mock wasn\'t called')
         self.assertEqual('booom :)', raw_resp.get_data(as_text=True))
 
 
@@ -27,21 +27,21 @@ class DemoTestPatched(BaseTest, BaseTestWithHTTPMethodsMixin):
     """
 
     def test_some(self, mocked_db_facade):
-        mocked_db_facade.asd.return_value = 'asd'
+        mocked_db_facade.ping_db.return_value = 'ping_db'
         self.get('api.test')
 
-        self.assertEqual(1, mocked_db_facade.asd.call_count)
+        self.assertEqual(1, mocked_db_facade.ping_db.call_count)
 
     def test_some_more(self, mocked_db_facade):
-        mocked_db_facade.asd.return_value = 'boo'
+        mocked_db_facade.ping_db.return_value = 'boo'
         resp = self.get('api.test')
 
         self.assertEqual('boo', resp.get_data(as_text=True))
-        self.assertEqual(1, mocked_db_facade.asd.call_count)
+        self.assertEqual(1, mocked_db_facade.ping_db.call_count)
 
     def test_type(self, mocked_db_facade):
         from app.api.views import db_facade
-        self.assertEqual(str(MagicMock), str(type(db_facade.asd)))
+        self.assertEqual(str(MagicMock), str(type(db_facade.ping_db)))
 
 
 class DeepEquality(BaseTest, BaseTestWithHTTPMethodsMixin):

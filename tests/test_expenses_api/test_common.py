@@ -1,6 +1,8 @@
 from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 
 from flask import current_app
+
+
 # from app.expenses_api.views import db_facade
 
 
@@ -17,6 +19,6 @@ class TestAuthHeader(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_request_to_protected_resources_requires_auth_token(self):
         default_args = {}  # api will use its defaults
-        raw_resp = self.get('expenses_api.get_expenses_list', url_args=default_args, headers={})
+        raw_resp = self.get('expenses_api.honeypot', url_args=default_args, headers={})
         self.assertEqual(403, raw_resp.status_code,
                          'making a request to a protected resource should require a valid auth token')

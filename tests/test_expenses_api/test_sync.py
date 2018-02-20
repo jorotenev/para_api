@@ -13,7 +13,7 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.sync.return_value = dumps({
-            'to_remove': [10],
+            'to_remove': ['some uuid'],
             'to_add': [SINGLE_EXPENSE],
             'to_update': [sample_expenses[1]]
         })
@@ -25,7 +25,7 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertTrue(type(json) == list)
         self.assertTrue(all([is_valid_expense(exp) for exp in json['to_add']]))
         self.assertTrue(all([is_valid_expense(exp) for exp in json['to_update']]))
-        self.assertTrue(all(map(is_number, json['to_remove'])))
+        self.assertTrue(all([type(e) == str for e in json['to_remove']]))
 
     def test_fails_on_invalid_payload(self, _):
         payload = '[{"something":1}]'
