@@ -146,8 +146,8 @@ def validate_update_request(request_data):
     return True, None
 
 
-@expenses_api.route('/remove/<int:expense_id>', methods=['DELETE'])
-def remove(expense_id):
+@expenses_api.route('/remove', methods=['DELETE'])
+def remove():
     return '{}'
 
 

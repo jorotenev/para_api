@@ -5,6 +5,7 @@ from app.expenses_api.views import db_facade
 from app.expenses_api.views import ApiError
 from app.models.sample_expenses import sample_expenses
 from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
+from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.remove'
@@ -15,12 +16,10 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.remove.return_value = None
+        raw_resp = self.delete(url=endpoint, data=SINGLE_EXPENSE.copy())
 
-        raw_resp = self.delete(url=endpoint, url_for_args={'expense_id': 1})
-        self.assertEqual(200, raw_resp.status_code)
         self.assertTrue(mocked_db.remove.called)
-        args, _ = mocked_db.remove.call_args
-        self.assertEqual(args, [1, self.firebase_uid])
+        self.assertEqual(200, raw_resp.status_code)
 
     def test_404_on_non_existing_expense(self, mocked_db):
         mocked_db.remove.side_effect = NoExpenseWithThisId()
@@ -34,8 +33,8 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
         mocked_db.remove.side_effect = RuntimeError("Shouldn't be called")
         invalid_expenses = []
 
-        invalid_expenses.push({**sample_expenses[0], 'timestamp_utc': ''})
-        invalid_expenses.push({**sample_expenses[0], 'id': ''})
+        invalid_expenses.append({**sample_expenses[0], 'timestamp_utc': ''})
+        invalid_expenses.append({**sample_expenses[0], 'id': ''})
         for invalid_expense in invalid_expenses:
             raw_resp = self.delete(url=endpoint, data=invalid_expense)
             self.assertEqual(400, raw_resp.status_code)
@@ -47,13 +46,11 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
 class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_normal_usage(self, mocked_db: type(db_facade)):
         mocked_db.remove.return_value = True
-        exp_id = 1
-
-        self.delete(url=endpoint, url_for_args={'expense_id': exp_id})
+        exp = SINGLE_EXPENSE.copy()
+        self.delete(url=endpoint, data=exp)
         self.assertTrue(mocked_db.remove.called)
-        call_args, _ = mocked_db.remove.call_args
-        self.assertEqual([exp_id, self.firebase_uid], call_args)
-
-    def test_not_called_on_invalid(self, mocked_db: type(db_facade)):
-        raw_resp = self.delete(url=endpoint, url_for_args={'expense_id': -1})
-        self.assertFalse(mocked_db.remove.called)
+        call_args, call_kwargs = mocked_db.remove.call_args
+        self.assertEqual({
+            'expense': exp,
+            'user_uid': self.firebase_uid
+        }, call_kwargs)
