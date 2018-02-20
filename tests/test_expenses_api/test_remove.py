@@ -40,7 +40,7 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
             raw_resp = self.delete(url=endpoint, data=invalid_expense)
             self.assertEqual(400, raw_resp.status_code)
             self.assertFalse(mocked_db.remove.called)
-            mocked_db.remove.calls.reset_mock()
+            mocked_db.remove.reset_mock()
 
 
 @patch(db_facade_path, autospec=True)
@@ -51,7 +51,7 @@ class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.delete(url=endpoint, data=exp)
         self.assertTrue(mocked_db.remove.called)
         call_args, call_kwargs = mocked_db.remove.call_args
-        self.assertEqual({
+        self.assertDictEqual({
             'expense': exp,
             'user_uid': self.firebase_uid
         }, call_kwargs)

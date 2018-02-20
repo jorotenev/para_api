@@ -24,6 +24,7 @@ def needs_firebase_uid(f):
 
 
 class ApiError:
+    EMPTY_REQUEST_BODY = "Empty request body"
     IDS_OF_EXPENSES_DONT_MATCH = "When updating, the `id` properties of both the updated expense and its previous state must be the same"
     INVALID_BATCH_SIZE = "Received an invalid batch_size. Must be >0 integer."
     BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
@@ -34,6 +35,7 @@ class ApiError:
     INVALID_ORDER_PARAM = "Invalid value for ordering direction. Allowed: [%s]" % ", ".join(
         [o.name for o in OrderingDirection])
     PREVIOUS_STATE_OF_EXP_MISSING = "When updating an expense, both the update expense and its previous state are required"
+    ID_PROPERTY_MANDATORY = 'The `id` property must be non-null'
 
 
 @expenses_api.route("/test", methods=['GET'])
@@ -101,9 +103,6 @@ def get_expenses_list(user_uid=None):
     return make_json_response(response)
 
 
-
-
-
 @expenses_api.route('/persist', methods=['POST'])
 def persist():
     return '{}'
@@ -128,7 +127,7 @@ def update(user_uid=None):
 
 def validate_update_request(request_data):
     try:
-        assert request_data, "Empty request body"
+        assert request_data, ApiError.EMPTY_REQUEST_BODY
         assert 'updated' in request_data, '`updated` field not in the request body'
         assert 'previous_state' in request_data, ApiError.PREVIOUS_STATE_OF_EXP_MISSING
 
@@ -136,16 +135,33 @@ def validate_update_request(request_data):
         for field, value in check_valid:
             is_valid, _ = Validator.validate_expense(value)
             assert is_valid, "%s is not a valid expense" % field
-            assert 'id' in value, 'The `id` field is mandatory'
+            assert 'id' in value and value['id'], ApiError.ID_PROPERTY_MANDATORY
     except AssertionError as err:
         return False, str(err)
 
     return True, None
 
 
+def validate_remove_request(request_data):
+    assert request_data, ApiError.EMPTY_REQUEST_BODY
+    assert Validator.validate_expense_simple(request_data), ApiError.INVALID_EXPENSE
+    assert 'id' in request_data and request_data['id'], ApiError.ID_PROPERTY_MANDATORY
+
+
 @expenses_api.route('/remove', methods=['DELETE'])
-def remove():
-    return '{}'
+@needs_firebase_uid
+def remove(user_uid=None):
+    expense_to_delete = request.get_json(force=True, silent=True)
+    try:
+        validate_remove_request(expense_to_delete)
+    except AssertionError as err:
+        return make_error_response(str(err), status_code=400)
+
+    try:
+        db_facade.remove(expense=expense_to_delete, user_uid=user_uid)
+        return make_json_response('[]')
+    except NoExpenseWithThisId as ex:
+        return make_error_response(ApiError.NO_EXPENSE_WITH_THIS_ID, status_code=404)
 
 
 @expenses_api.route('/sync', methods=['GET'])
