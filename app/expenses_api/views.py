@@ -90,11 +90,11 @@ def get_expenses_list(user_uid=None):
 
     ordering_direction = OrderingDirection[ordering_direction]
 
-    response = db_facade.get_list(property_value=property_value,
+    response = db_facade.get_list(
         property_value=property_value,
-                                  property_name=property_name,
-                                  ordering_direction=ordering_direction,
-                                  user_uid='fake firebase uid'
+        property_name=property_name,
+        ordering_direction=ordering_direction,
+        user_uid=user_uid,
         batch_size=batch_size
                                   )
 
