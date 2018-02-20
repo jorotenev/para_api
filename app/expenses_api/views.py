@@ -2,7 +2,7 @@ import json
 from flask import request, current_app
 from app.api_utils.response import make_json_response, make_error_response
 from app.db_facade import db_facade
-from app.db_facade.facade import MAX_BATCH_SIZE
+from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId
 from app.db_facade.misc import OrderingDirection
 from app.models.expense_validation import Validator
 from tests.common_methods import TESTER_USER_FIREBASE_UID
@@ -25,6 +25,7 @@ def needs_firebase_uid(f):
 
 
 class ApiError:
+    IDS_OF_EXPENSES_DONT_MATCH = "When updating, the `id` properties of both the updated expense and its previous state must be the same"
     INVALID_BATCH_SIZE = "Received an invalid batch_size. Must be >0 integer."
     BATCH_SIZE_EXCEEDED = "Serving this request would exceed the maximum size of the response, %i. "
     INVALID_QUERY_PARAMS = "Invalid URL query parameters"
@@ -96,7 +97,7 @@ def get_expenses_list(user_uid=None):
         ordering_direction=ordering_direction,
         user_uid=user_uid,
         batch_size=batch_size
-                                  )
+    )
 
     return make_json_response(response)
 
@@ -114,7 +115,35 @@ def persist():
 @expenses_api.route('/update', methods=['PUT'])
 @needs_firebase_uid
 def update(user_uid=None):
-    return '{}'
+    request_data = request.get_json(force=True, silent=True)
+    is_valid, error_msg = validate_update_request(request_data)
+    if not is_valid:
+        return make_error_response(error_msg, 400)
+
+    try:
+        result = db_facade.update(request_data['updated'], request_data['previous_state'], user_uid)
+        return make_json_response(result)
+    except NoExpenseWithThisId as err:
+        return make_error_response(ApiError.NO_EXPENSE_WITH_THIS_ID, status_code=404)
+    except ValueError as err:
+        return make_error_response(ApiError.IDS_OF_EXPENSES_DONT_MATCH, status_code=400)
+
+
+def validate_update_request(request_data):
+    try:
+        assert request_data, "Empty request body"
+        assert 'updated' in request_data, '`updated` field not in the request body'
+        assert 'previous_state' in request_data, ApiError.PREVIOUS_STATE_OF_EXP_MISSING
+
+        check_valid = [('updated', request_data['updated']), ('previous_state', request_data['previous_state'])]
+        for field, value in check_valid:
+            is_valid, _ = Validator.validate_expense(value)
+            assert is_valid, "%s is not a valid expense" % field
+            assert 'id' in value, 'The `id` field is mandatory'
+    except AssertionError as err:
+        return False, str(err)
+
+    return True, None
 
 
 @expenses_api.route('/remove/<int:expense_id>', methods=['DELETE'])
