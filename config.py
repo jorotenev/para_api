@@ -15,6 +15,7 @@ class BaseConfig(object):
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
 
     DB_PING_LAZY = os.environ.get("DB_PING_LAZY", False)
+    CUSTOM_AUTH_HEADER_NAME = "x-firebase-auth-token"
 
     @classmethod
     def init_app(cls, app):
