@@ -26,6 +26,16 @@ def test():
     return 'asd' + str(db_facade.asd())
 
 
+@expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
+# TODO mark as protected
+def honeypot():
+    """
+    endpoint used to verify that protected routes require auth
+    :return:
+    """
+    return 'sweet'
+
+
 def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
     assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
     if not none_is_ok and property_value is None:
