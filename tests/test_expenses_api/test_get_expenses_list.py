@@ -1,6 +1,7 @@
 import json
 from unittest.mock import patch
 
+from app.db_facade.misc import OrderingDirection
 from app.helpers.time import utc_now_str
 from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from json import loads
@@ -120,16 +121,33 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
 class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_call_on_good_request(self, mocked_db: type(db_facade)):
         mocked_db.get_list.return_value = []
-
-        request_args = {'start_id': 10, 'batch_size': 10}
+        property_value = utc_now_str()
+        property_name = 'timestamp_utc'
+        id = 'asd'
+        batch_size = 10
+        request_args = {
+            'start_from_id': id,
+            'start_from_property_value': property_value,
+            'start_from_property': property_name,
+            'batch_size': batch_size,
+        }
         resp = self.get(url=endpoint, url_args=request_args)
 
         self.assertEqual(1, mocked_db.get_list.call_count, 'The get list should have been called once')
 
-        call_args, call_kwargs = mocked_db.get_list.call_args
-        self.assertEqual(0, len(call_kwargs))
-        self.assertEqual([request_args['start_id'], request_args['batch_size'], self.firebase_uid], call_args,
-                         "get_list wasn't called with the expected args")
+        call_args, actual_kwargs = mocked_db.get_list.call_args
+        self.assertEqual(0, len(call_args))
+        expected_kwargs = {
+            'property_value': property_value,
+            'property_name': property_name,
+            "ordering_direction": OrderingDirection.desc,
+            'batch_size': batch_size,
+            'user_uid': self.firebase_uid
+        }
+        self.assertEqual(len(expected_kwargs), len(actual_kwargs))
+
+        self.assertDictEqual(expected_kwargs, actual_kwargs,
+                             "get_list wasn't called with the expected kwargs")
 
         self.assertEqual(200, resp.status_code)
         self.assertEqual('[]', resp.get_data(as_text=True))
