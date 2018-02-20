@@ -101,9 +101,7 @@ def get_expenses_list(user_uid=None):
     return make_json_response(response)
 
 
-@expenses_api.route("/get_expense_by_id/<int:expense_id>", methods=['GET'])
-def get_expense_by_id(expense_id):
-    return ""
+
 
 
 @expenses_api.route('/persist', methods=['POST'])
