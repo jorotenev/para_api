@@ -8,11 +8,6 @@ web:
     - "5000"
   volumes:
     - .:/usr/src/app/
-  environment:
-    - FLASK_APP=manage.py
-    - FLASK_DEBUG=0
-    - SECRET_KEY # must be defined in the host env
-    - APP_STAGE # this one too
   command: flask test
 
 dynamodb:

@@ -14,6 +14,7 @@ class BaseConfig(object):
     CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
 
+    # makes it possible to create an app when the expenses table is empty
     DB_PING_LAZY = os.environ.get("DB_PING_LAZY", False)
     CUSTOM_AUTH_HEADER_NAME = "x-firebase-auth-token"
     MAX_EXECUTION_TIME = 3  # lambda consideration
