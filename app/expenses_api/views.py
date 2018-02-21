@@ -2,7 +2,7 @@ import json
 from flask import request, current_app
 from app.api_utils.response import make_json_response, make_error_response
 from app.db_facade import db_facade
-from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId
+from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId, DynamodbThroughputExhausted
 from app.db_facade.misc import OrderingDirection
 from app.models.expense_validation import Validator
 from . import expenses_api
@@ -40,7 +40,7 @@ class ApiError:
 
 @expenses_api.route("/test", methods=['GET'])
 def test():
-    return 'asd' + str(db_facade.asd())
+    return request.get_json(force=True)
 
 
 @expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -105,6 +105,7 @@ def get_expenses_list(user_uid=None):
 
 @expenses_api.route('/persist', methods=['POST'])
 def persist():
+    assert "tags.len" < 10
     return '{}'
 
 
@@ -164,6 +165,21 @@ def remove(user_uid=None):
         return make_error_response(ApiError.NO_EXPENSE_WITH_THIS_ID, status_code=404)
 
 
-@expenses_api.route('/sync', methods=['GET'])
-def sync():
-    return '{}'
+@expenses_api.route('/sync', methods=['POST'])
+@needs_firebase_uid
+def sync(user_uid=None):
+    partial_expenses = request.get_json(force=True, silent=True)
+    try:
+        assert isinstance(partial_expenses, dict), 'expected an object as payload.'
+        assert all(
+            [('timestamp_utc_updated' in partial_expense.keys()) for partial_expense in
+             partial_expenses.values()]), "the values of the object must be objects with the `timestamp_utc_updated` key"
+    except AssertionError as err:
+        return make_error_response(str(err), status_code=400)
+
+    try:
+        return db_facade.sync(sync_request_objs=partial_expenses, user_uid=user_uid)
+    except RuntimeError as err:
+        return make_error_response("problem at the back end. mi scuzi.", status_code=500)
+    except DynamodbThroughputExhausted as err:
+        return make_error_response("The API cannot server your request currently.", status_code=413)
