@@ -19,8 +19,7 @@ jobs:
 
     steps:
       - checkout
-      - setup_remote_docker
-      # Download and cache dependencies
+
       - restore_cache:
           keys:
           - v1-dependencies-{{ checksum "requirements.txt" }}
@@ -33,7 +32,7 @@ jobs:
             python3 -m venv venv
             . venv/bin/activate
             pip install -r requirements.txt
-            docker-compose build
+            sudo apt-get install default-jdk
 
       - save_cache:
           paths:
@@ -44,7 +43,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            docker-compose up -d dynamodb
+            java -Djava.library.path=.circleci/dynamodb_local/DynamoDBLoc_lib -jar .circleci/dynamodb_local/DynamoDBLocal.jar -sharedDb
             . venv/bin/activate
             export FLASK_APP=manage.py
             flask test
