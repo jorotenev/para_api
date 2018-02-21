@@ -1,7 +1,5 @@
 # config.py
 import os
-from os.path import join, dirname
-from dotenv import load_dotenv
 
 local_dynamodb_url = 'http://localhost:8000'
 fake_uid = 'fake firebase uid'
@@ -9,6 +7,7 @@ fake_uid = 'fake firebase uid'
 
 class BaseConfig(object):
     EXPENSES_API_VERSION = 'v1'
+
     APP_STAGE = os.environ['APP_STAGE']
     TESTING = False
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
@@ -17,6 +16,7 @@ class BaseConfig(object):
 
     DB_PING_LAZY = os.environ.get("DB_PING_LAZY", False)
     CUSTOM_AUTH_HEADER_NAME = "x-firebase-auth-token"
+    MAX_EXECUTION_TIME = 3  # lambda consideration
 
     @classmethod
     def init_app(cls, app):

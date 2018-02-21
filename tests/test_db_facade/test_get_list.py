@@ -1,5 +1,6 @@
-from app.models.sample_expenses import sample_expenses
 from tests.test_db_facade.test_db_base import DbTestBase
+
+from app.models.sample_expenses import sample_expenses
 from app.db_facade.misc import OrderingDirection
 
 seed_data = DbTestBase.withSeedDataDecorator

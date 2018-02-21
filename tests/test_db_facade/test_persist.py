@@ -1,7 +1,8 @@
+from tests.test_db_facade.test_db_base import DbTestBase
+
 from app.db_facade.facade import PersistFailed
 from app.models.expense_validation import Validator
 from tests.common_methods import SINGLE_EXPENSE
-from tests.test_db_facade.test_db_base import DbTestBase
 
 seed_data = DbTestBase.withSeedDataDecorator
 

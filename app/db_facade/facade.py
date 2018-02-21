@@ -125,8 +125,10 @@ class __DbFacade(object):
         kwargs = {}
         if app.config['APP_STAGE'] in [EnvironmentName.development, EnvironmentName.testing]:
             local_dynamodb_url = app.config['LOCAL_DYNAMODB_URL']
-
+            print("Will attempt to connect to a local DynamoDB instance")
             kwargs['endpoint_url'] = local_dynamodb_url
+        else:
+            print("Will attempt to connect to an AWS instance of DynamoDB")
 
         raw_db = boto3.resource('dynamodb', **kwargs)
         print("Target DynamoDB endpoint %s" % raw_db.meta.client.meta.endpoint_url)

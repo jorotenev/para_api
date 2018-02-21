@@ -1,8 +1,9 @@
+from tests.test_db_facade.test_db_base import DbTestBase
+
 from app.db_facade.facade import NoExpenseWithThisId
 from app.helpers.time import utc_now_str
 from app.models.sample_expenses import sample_expenses
 from tests.common_methods import SINGLE_EXPENSE
-from tests.test_db_facade.test_db_base import DbTestBase
 
 seed_data = DbTestBase.withSeedDataDecorator
 

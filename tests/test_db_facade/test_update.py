@@ -1,6 +1,7 @@
+from tests.test_db_facade.test_db_base import DbTestBase
+
 from app.db_facade.facade import NoExpenseWithThisId, sanitize_expense
 from app.models.expense_validation import Validator
-from tests.test_db_facade.test_db_base import DbTestBase
 from app.models.sample_expenses import sample_expenses
 
 seed_data = DbTestBase.withSeedDataDecorator

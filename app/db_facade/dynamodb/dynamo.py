@@ -4,7 +4,7 @@ from app.helpers.utils import deadline
 http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html
 """
 
-@deadline(5)
+@deadline(2)
 def create_table_sync(dynamodb_resource, table_name, silent_if_existing=True, **kwargs):
     try:
         table = dynamodb_resource.create_table(
@@ -22,7 +22,7 @@ def create_table_sync(dynamodb_resource, table_name, silent_if_existing=True, **
             raise err
 
 
-@deadline(5, "Deletion hasn't completed in 5 seconds")
+@deadline(2, "Deletion hasn't completed in 2 seconds")
 def DELETE_table_sync(dynamodb_resource, table_name):
     """
 

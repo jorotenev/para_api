@@ -1,4 +1,5 @@
 from tests.base_test import BaseTest
+
 from app.db_facade import db_facade, dynamodb_users_table_init_information
 from app.db_facade.dynamodb.dynamo import create_table_sync, DELETE_table_sync, EMPTY_table_contents
 

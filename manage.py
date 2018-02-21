@@ -6,8 +6,11 @@ from dotenv import load_dotenv
 
 from app.helpers.time import ensure_ts_str_ends_with_z
 
-dotenv_path = join(dirname(__file__), '.env_dev')  # will fail silently if file is missing
-load_dotenv(dotenv_path, verbose=True)
+if os.environ.get("ENV_DOT_FILE"):
+    dotenv_path = join(dirname(__file__), os.environ.get("ENV_DOT_FILE"))  # will fail silently if file is missing
+    load_dotenv(dotenv_path, verbose=True)
+else:
+    print("Not using .env file to load env vars")
 
 from app import create_app
 from config import EnvironmentName
@@ -15,7 +18,6 @@ from config import EnvironmentName
 app_mode = None
 try:
     app_mode = os.environ['APP_STAGE']
-
 except KeyError:
     print("Set the APP_STAGE environmental variable: %s" % ",".join(EnvironmentName.all_names()))
     exit(1)
@@ -102,5 +104,9 @@ def seed_data():
     print('ok')
 
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=app.config['PORT'])
+@app.cli.command(with_appcontext=False)
+def boom():
+    app = create_app('staging')
+    with app.app_context():
+        from app.db_facade import db_facade
+        print(db_facade.EXPENSES_TABLE_NAME)
