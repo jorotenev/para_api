@@ -30,6 +30,12 @@ for property in expense_properties:
     if property.upper() in reserved_attr_names:
         safe_property_name = "#%s" % safe_property_name
     escaped_attr_names[safe_property_name] = property
+# to be included in queries if all expense properties are to be retrieved (EXcluding item attributes that don't belong
+# to the expense schema). handles property names which are Dynamodb reserved words
+projection_expr_expenseONLY_attrs = {
+    "ProjectionExpression": ", ".join(escaped_attr_names.keys()),
+    "ExpressionAttributeNames": {k: escaped_attr_names[k] for k in escaped_attr_names if k.startswith("#")},
+}
 
 
 def touch_timestamp(expense, ts_property):
@@ -123,12 +129,12 @@ class __DbFacade(object):
             kwargs['endpoint_url'] = local_dynamodb_url
 
         raw_db = boto3.resource('dynamodb', **kwargs)
+        print("Target DynamoDB endpoint %s" % raw_db.meta.client.meta.endpoint_url)
         self.ping_db(raw_db)
-
         self.raw_db = raw_db
         self.expenses_table = raw_db.Table(self.EXPENSES_TABLE_NAME)
 
-    @deadline(3, "Fail fast. DB health check failed. Is the table created and is the db reachable?")
+    @deadline(1, "Fail fast. DB health check failed. Is the table created and is the db reachable?")
     def ping_db(self, db):
 
         """
@@ -189,9 +195,8 @@ class __DbFacade(object):
 
         # configure the query
         query_kwargs = {
+            **projection_expr_expenseONLY_attrs,
             "Select": "SPECIFIC_ATTRIBUTES",
-            "ProjectionExpression": ", ".join(escaped_attr_names.keys()),
-            "ExpressionAttributeNames": {k: escaped_attr_names[k] for k in escaped_attr_names if k.startswith("#")},
             "Limit": batch_size,
             "ConsistentRead": False,
             "ScanIndexForward": True if ordering_direction is OrderingDirection.asc else False,
@@ -291,11 +296,88 @@ class __DbFacade(object):
 
     def sync(self, sync_request_objs, user_uid):
         """
+        given a list from the client of request objects (each containing `timestamp_utc_updated` & the `id` of an expense,
+        this method will return which of the input objects the client should remove, add and update.
 
-        :param sync_request_objs: a list of dicts with `id` and `timestamp_utc_updated`
-        :return:
-        :raises NoSuchUser
+        :param sync_request_objs: a dict with expense `id` as a key and a dict with a key `timestamp_utc_updated` as value
+        {
+            "some-expense-id": {"timestamp_utc_updated": "some-ts"},
+            ...
+        }
+        :return: dict with keys "to_add", "to_remove", "to_update".
+        :raises RuntimeError if no LSI is setup
+        :raises DynamodbThroughputExhausted - if the operation exhausted the allowed RCUs dedicated to the base table.
         """
+        try:
+            assert 'id' in index_for_property
+            assert index_for_property['id']
+        except AssertionError:
+            raise RuntimeError("Invalid application state. a LSI with `id` as RANGE key is required for /sync")
+
+        try:
+            items = self._sync_get_items(user_uid)
+            return self._sync_process_items(items, sync_request_objs)
+        except Exception as ex:
+            if "ProvisionedThroughputExceededException" in str(ex):
+                raise DynamodbThroughputExhausted()
+            else:
+                raise ex
+
+    def _sync_get_items(self, user_uid):
+        query_params = {
+            **projection_expr_expenseONLY_attrs,
+            "IndexName": index_for_property['id'],
+            "TableName": self.EXPENSES_TABLE_NAME,
+            "Select": 'SPECIFIC_ATTRIBUTES',
+            "Limit": 1000,
+            "ConsistentRead": False,
+            "KeyConditionExpression": Key(self.HASH_KEY).eq(user_uid)
+        }
+
+        # key is expense `id`, value is the whole expense
+        retrieved_items = {}
+        try_again = True
+        while try_again:
+            resp = self.expenses_table.query(
+                **query_params
+            )
+            for exp in resp['Items']:
+                retrieved_items[exp['id']] = exp
+
+            if 'LastEvaluatedKey' in resp:
+                query_params['LastEvaluatedKey'] = resp['LastEvaluatedKey']
+            else:
+                try_again = False
+
+        return retrieved_items
+
+    def _sync_process_items(self, items_from_db, request_objects):
+        """
+        :param items_from_db: a dict with key an expense `id` and value the expense
+        :param request_objects: list of (`id`, `timestamp_utc_updated`) objects
+        :return: see `sync()`
+        """
+        result = {
+            'to_add': [],
+            'to_remove': [],
+            'to_update': []
+        }
+
+        ids_on_db = set(items_from_db.keys())
+        ids_on_client = set(request_objects.keys())
+
+        ids_on_db_only = ids_on_db - ids_on_client  # https://docs.python.org/3.6/library/stdtypes.html#frozenset.difference
+        ids_on_client_only = ids_on_client - ids_on_db
+        ids_on_both = ids_on_db & ids_on_client  # https://docs.python.org/3.6/library/stdtypes.html#frozenset.intersection
+
+        result['to_remove'] = list(ids_on_client_only)
+        result['to_add'] = [items_from_db[item_id] for item_id in ids_on_db_only]
+
+        ts_key = 'timestamp_utc_updated'
+        result['to_update'] = [items_from_db[exp_id] for exp_id in ids_on_both if
+                               items_from_db[exp_id][ts_key] > request_objects[exp_id][ts_key]]
+
+        return result
 
     def expense_exists(self, exp_id, user_uid):
         """
@@ -398,6 +480,11 @@ class PersistFailed(Exception):
 class UnindexedPropertySelected(Exception):
     def __init__(self, *args):
         super(UnindexedPropertySelected, self).__init__(*args)
+
+
+class DynamodbThroughputExhausted(Exception):
+    def __init__(self, *args):
+        super(DynamodbThroughputExhausted, self).__init__(*args)
 
 
 MAX_BATCH_SIZE = 25
