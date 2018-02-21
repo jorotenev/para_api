@@ -1,3 +1,4 @@
+shared-local-instance.db
 .env_dev
 .env_test
 .aws_para_config/
