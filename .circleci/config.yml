@@ -43,7 +43,7 @@ jobs:
       - run:
           name: run tests
           command: |
-            java -Djava.library.path=.circleci/dynamodb_local/DynamoDBLoc_lib -jar .circleci/dynamodb_local/DynamoDBLocal.jar -sharedDb
+            java -Djava.library.path=.circleci/dynamodb_local/DynamoDBLoc_lib -jar .circleci/dynamodb_local/DynamoDBLocal.jar -sharedDb &
             . venv/bin/activate
             export FLASK_APP=manage.py
             flask test
