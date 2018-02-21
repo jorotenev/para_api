@@ -17,6 +17,11 @@ def delete_exp(table, exp_to_delete, user_uid):
     )
 
 
+def generate_sync_request():
+    ts_key = 'timestamp_utc_updated'
+    return {exp['id']: {ts_key: exp[ts_key]} for exp in sample_expenses}
+
+
 class TestSync(DbTestBase):
 
     @seed_data
@@ -53,10 +58,7 @@ class TestSync(DbTestBase):
         self.expenses_table.put_item(Item=self.facade.converter.convertToDbFormat(new_expense))
 
         # now verify that sync() returns correct result
-        request = {}
-        for exp in sample_expenses:
-            request[exp['id']] = {'timestamp_utc_updated': exp['timestamp_utc_updated']}
-
+        request = generate_sync_request()
         sync_result = self.facade.sync(request, self.firebase_uid)
         self.assertIn("to_add", sync_result.keys())
         self.assertIn("to_remove", sync_result.keys())
