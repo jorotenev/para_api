@@ -1,6 +1,9 @@
+from app.helpers.time import dt_from_utc_iso_str, utc_now_str
+from app.models.sample_expenses import sample_expenses
 from tests.test_db_facade.test_db_base import DbTestBase
+from dateutil.parser import parse
 
-from app.db_facade.facade import PersistFailed
+from app.db_facade.facade import PersistFailed, ItemWithSameRangeKeyExists
 from app.models.expense_validation import Validator
 from tests.common_methods import SINGLE_EXPENSE
 
@@ -29,15 +32,26 @@ class TestPersist(DbTestBase):
 
         self.assertEqual(raw_persisted_expense['id'], persisted['id'])
 
+    def test_timestamp(self):
+        exp = sample_expenses[0]
+
+        persisted = self.facade.persist(exp, user_uid=self.firebase_uid)
+        now = dt_from_utc_iso_str(utc_now_str())
+
+        persisted_at_dt = dt_from_utc_iso_str(persisted['timestamp_utc_created'])
+        updated_at_dt = dt_from_utc_iso_str(persisted['timestamp_utc_created'])
+        self.assertEqual(persisted_at_dt, updated_at_dt)
+
+        for ts in [persisted_at_dt, updated_at_dt]:
+            diff = int((now - ts).total_seconds())
+            self.assertTrue(1 >= diff, "the expense's ts must be less than a second ago from now")
+
     def test_invalid_expense(self):
         invalid_expenses = []
 
         invalid_expense_1 = SINGLE_EXPENSE.copy()
         del invalid_expense_1['timestamp_utc']
         invalid_expenses.append(invalid_expense_1)
-        invalid_expense_2 = SINGLE_EXPENSE.copy()
-        del invalid_expense_1['id']  # the id key should be present, but set to None for the exp to be valid
-        invalid_expenses.append(invalid_expense_2)
 
         for invalid_expense in invalid_expenses:
             func_kwargs = {
@@ -47,3 +61,9 @@ class TestPersist(DbTestBase):
             should_boom = self.facade.persist
 
             self.assertRaises(PersistFailed, should_boom, **func_kwargs)
+
+    @seed_data
+    def test_fails_on_duplicate_range_key(self):
+        persisted = sample_expenses[0]
+
+        self.assertRaises(ItemWithSameRangeKeyExists, self.facade.persist, persisted, self.firebase_uid)
