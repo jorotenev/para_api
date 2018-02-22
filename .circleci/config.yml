@@ -5,7 +5,7 @@
 version: 2
 jobs:
   build:
-    docker:
+    machine:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
       - image: circleci/python:3.6.4
@@ -33,11 +33,7 @@ jobs:
             . venv/bin/activate
             pip install -r requirements.txt
 
-            sudo apt-get install software-properties-common python-software-properties
-            sudo add-apt-repository "deb http://ppa.launchpad.net/webupd8team/java/ubuntu xenial main"
-            sudo apt-get update
-            echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | sudo debconf-set-selections
-            sudo apt-get install oracle-java8-installer
+            docker-compose build
 
       - save_cache:
           paths:
@@ -48,7 +44,8 @@ jobs:
       - run:
           name: run tests
           command: |
-            java -Djava.library.path=.circleci/dynamodb_local/DynamoDBLoc_lib -jar .circleci/dynamodb_local/DynamoDBLocal.jar -sharedDb &
+            docker-compose up -d dynamodb
+
             . venv/bin/activate
             export FLASK_APP=manage.py
             flask test
