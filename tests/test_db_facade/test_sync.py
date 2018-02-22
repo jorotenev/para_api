@@ -1,3 +1,4 @@
+from app.models.expense_validation import Validator
 from tests.test_db_facade.test_db_base import DbTestBase
 
 import uuid
@@ -63,6 +64,9 @@ class TestSync(DbTestBase):
         self.assertIn("to_add", sync_result.keys())
         self.assertIn("to_remove", sync_result.keys())
         self.assertIn("to_update", sync_result.keys())
+        self.assertTrue(all(Validator.validate_expense_simple(e) for e in sync_result['to_add']))
+        self.assertTrue(all(Validator.validate_expense_simple(e) for e in sync_result['to_update']))
+        self.assertTrue(all(Validator.validate_property(exp_id, 'id') for exp_id in sync_result['to_remove']))
 
         self.assertEqual(len(sync_result['to_add']), 1)
         self.assertEqual(new_expense['id'], sync_result['to_add'][0]['id'])
