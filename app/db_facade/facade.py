@@ -223,13 +223,8 @@ class __DbFacade(object):
             query_kwargs['KeyConditionExpression'] = And(Key(self.HASH_KEY).eq(user_uid), sort_key_cond(property_value))
 
         result = self.expenses_table.query(**query_kwargs)['Items']
-        result = [self.converter.convertFromDbFormat(e) for e in result]
-        ready_expenses = list(filter(Validator.validate_expense_simple, result))
 
-        if len(ready_expenses) is not len(result):
-            warnings.warn("%i invalid expenses in the response were discarded!" % (len(ready_expenses) - len(result)))
-
-        return ready_expenses
+        return [self.converter.convertFromDbFormat(e) for e in result]
 
     @sanitize_response_decorator(expense_type)
     def persist(self, expense, user_uid):
