@@ -19,6 +19,7 @@ from .table_schema import range_key, hash_key
 http://boto3.readthedocs.io/en/latest/reference/services/dynamodb.html
 """
 raw_db = None
+expense_type = dict
 """
 https://docs.aws.amazon.com/amazondynamodb/latest/developerguide/ReservedWords.html
 we know the property names of an expense. in this dict we keep valid property names that can
@@ -92,7 +93,7 @@ def sanitize_response_decorator(expected_type):
 
             assert type(resp) == expected_type
 
-            if expected_type == dict:
+            if expected_type == expense_type:
                 return sanitize_expense(resp)
             elif expected_type == list:
                 return list(map(sanitize_expense, resp))
@@ -230,18 +231,25 @@ class __DbFacade(object):
 
         return ready_expenses
 
+    @sanitize_response_decorator(expense_type)
     def persist(self, expense, user_uid):
         """
-
         :param expense: expense with `id` parameter set to None
         :param user_uid:
         :return: the persisted expense
-        :raises
+        :raises ItemWithSameRangeKeyExists
+        :raises PersistFailed
         """
+        expense = expense.copy()
         touch_timestamp(expense, 'timestamp_utc_created')
         touch_timestamp(expense, 'timestamp_utc_updated')
+        raw_persisted = self._facade_put_item(context=self.expenses_table, expense=expense, user_uid=user_uid)
+        # still has user_uid
+        persisted = self.converter.convertFromDbFormat(raw_persisted)
 
-    @sanitize_response_decorator(dict)
+        return persisted
+
+    @sanitize_response_decorator(expense_type)
     def update(self, expense, old_expense, user_uid):
         """
 
@@ -280,6 +288,7 @@ class __DbFacade(object):
         :raises NoExpenseWithThisId
         :returns void
         """
+        expense = expense.copy()
         try:
             self.expenses_table.delete_item(
                 Key={
@@ -318,7 +327,12 @@ class __DbFacade(object):
 
         try:
             items = self._sync_get_items(user_uid)
-            return self._sync_process_items(items, sync_request_objs)
+            result = self._sync_process_items(items, sync_request_objs)
+
+            result['to_update'] = [sanitize_expense(e) for e in result['to_update']]
+            result['to_add'] = [sanitize_expense(e) for e in result['to_add']]
+
+            return result
         except Exception as ex:
             if "ProvisionedThroughputExceededException" in str(ex):
                 raise DynamodbThroughputExhausted()
@@ -430,16 +444,20 @@ class __DbFacade(object):
         :param old_expense:
         :param user_uid:
         :return:
+
+        :raises see _facade_put_item
         """
 
         # delete the old expense and put the updated one in a single batch
         # it's fine because they have different sort keys
-        with self.expenses_table.batch_writer() as batch:
-            batch.delete_item(Key={
-                'user_uid': user_uid,
-                'timestamp_utc': old_expense['timestamp_utc']
-            })
-            self._facade_put_item(batch, expense=expense, user_uid=user_uid)
+
+        self._facade_put_item(context=self.expenses_table, expense=expense, user_uid=user_uid)
+
+        # wouldn't delete the old expense if the put_item above raised an exception (ItemWithSameRangeKeyExists)
+        self.expenses_table.delete_item(Key={
+            'user_uid': user_uid,
+            'timestamp_utc': old_expense['timestamp_utc']
+        })
 
     def _facade_put_item(self, context, expense, user_uid):
         """
@@ -450,11 +468,28 @@ class __DbFacade(object):
         :param expense: as received by the client. id is None
         :param user_uid:
         :return: the expense, as it was persisted
+
+        :raises ItemWithSameSortKeyExists
+        :raises PersistFailed
         """
         exp = expense.copy()
-        exp['id'] = uuid.uuid4()
+        exp['id'] = str(uuid.uuid4())
         exp['user_uid'] = user_uid
-        context.put_item(Item=self.converter.convertToDbFormat(exp))
+
+        query_kwargs = {
+            "ConditionExpression": Attr(self.RANGE_KEY).not_exists()
+        }
+        try:
+            context.put_item(
+                Item=self.converter.convertToDbFormat(exp),
+                **query_kwargs)
+        except Exception as ex:
+            if "ConditionalCheckFailedException" in str(ex):
+                raise ItemWithSameRangeKeyExists("Item with RANGE key %s already exists" % exp[self.RANGE_KEY])
+            elif "One of the required keys was not given a value" in str(ex):
+                raise PersistFailed(str(ex))
+            else:
+                raise ex
 
         return exp
 
@@ -487,6 +522,11 @@ class UnindexedPropertySelected(Exception):
 class DynamodbThroughputExhausted(Exception):
     def __init__(self, *args):
         super(DynamodbThroughputExhausted, self).__init__(*args)
+
+
+class ItemWithSameRangeKeyExists(Exception):
+    def __init__(self, *args):
+        super(ItemWithSameRangeKeyExists, self).__init__(*args)
 
 
 MAX_BATCH_SIZE = 25
