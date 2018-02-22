@@ -3,9 +3,6 @@ from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from flask import current_app
 
 
-# from app.expenses_api.views import db_facade
-
-
 class ExampleTest(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_sample(self):

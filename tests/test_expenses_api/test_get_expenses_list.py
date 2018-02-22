@@ -1,11 +1,12 @@
-import json
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
+
+from json import loads
+
 from unittest.mock import patch
 
 from app.db_facade.misc import OrderingDirection
 from app.helpers.time import utc_now_str
 from app.models.expense_validation import Validator
-from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
-from json import loads
 
 from tests.common_methods import  sample_expenses
 from tests.test_expenses_api import db_facade_path
@@ -92,7 +93,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
             raw_resp = self.get(url=endpoint, url_args={'start_id': start_from, 'batch_size': batch_size})
 
             self.assertEqual(raw_resp.status_code, 400, "args should have been rejected" + str(args))
-            json_resp = json.loads(raw_resp.get_data(as_text=True))
+            json_resp = loads(raw_resp.get_data(as_text=True))
             self.assertIn("error", json_resp,
                           "error key missing from non-200 response")
             self.assertIn(ApiError.INVALID_QUERY_PARAMS, json_resp['error'])
@@ -108,7 +109,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertEqual(413, raw_resp.status_code)
 
         response_text = raw_resp.get_data(as_text=True)
-        response_json = json.loads(response_text)
+        response_json = loads(response_text)
         self.assertIn("error", response_json, "error key missing from response")
         self.assertIn(ApiError.BATCH_SIZE_EXCEEDED, response_json['error'])
 

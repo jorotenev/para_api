@@ -1,10 +1,11 @@
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
+
 from json import loads, dumps
 from unittest.mock import patch
 
 from app.db_facade.facade import DynamodbThroughputExhausted
 from app.helpers.time import utc_now_str
 from app.models.expense_validation import Validator
-from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
 from app.models.sample_expenses import sample_expenses
 from tests.common_methods import SINGLE_EXPENSE
 from tests.test_db_facade.test_sync import generate_sync_request
