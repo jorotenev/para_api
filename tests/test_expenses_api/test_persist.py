@@ -50,5 +50,5 @@ class TestPersistUsesDbFacadeCorrectly(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertEqual(200, raw_resp.status_code)
 
         self.assertTrue(mocked_db.persist.called, "persist should have been called")
-        args, _ = mocked_db.persist.call_args
-        self.assertEqual(args, [SINGLE_EXPENSE, self.firebase_uid])
+        args, kwargs = mocked_db.persist.call_args
+        self.assertDictEqual(kwargs, {"expense": to_persist, "user_uid": self.firebase_uid})
