@@ -103,10 +103,24 @@ def get_expenses_list(user_uid=None):
     return make_json_response(response)
 
 
+def validate_persist_request(expense):
+    is_valid, err_msg = Validator.validate_expense(expense)
+    assert is_valid, "%s %s" % (ApiError.INVALID_EXPENSE, err_msg)
+    assert expense['id'] == None, ApiError.ID_PROPERTY_FORBIDDEN  # must be non
+
+
 @expenses_api.route('/persist', methods=['POST'])
-def persist():
-    assert "tags.len" < 10
-    return '{}'
+@needs_firebase_uid
+def persist(user_uid=None):
+    expense = request.get_json(force=True, silent=True)
+    try:
+        validate_persist_request(expense)
+    except AssertionError as e:
+
+        return make_error_response(str(e), status_code=400)
+    persisted = db_facade.persist(expense=expense, user_uid=user_uid)
+
+    return make_json_response(persisted, status_code=200)
 
 
 @expenses_api.route('/update', methods=['PUT'])
