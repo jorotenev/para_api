@@ -25,7 +25,7 @@ class BaseConfig(object):
 
 
 class DevelopmentConfig(BaseConfig):
-    LOCAL_DYNAMODB_URL = local_dynamodb_url
+    LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
     TEST_FIREBASE_UID = fake_uid
 
     @classmethod
@@ -34,7 +34,7 @@ class DevelopmentConfig(BaseConfig):
 
 
 class TestingConfig(DevelopmentConfig):
-    LOCAL_DYNAMODB_URL = local_dynamodb_url
+    LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
     TEST_FIREBASE_UID = fake_uid
 
     TESTING = True
