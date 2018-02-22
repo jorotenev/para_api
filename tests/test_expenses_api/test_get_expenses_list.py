@@ -8,7 +8,7 @@ from app.db_facade.misc import OrderingDirection
 from app.helpers.time import utc_now_str
 from app.models.expense_validation import Validator
 
-from tests.common_methods import  sample_expenses
+from tests.common_methods import sample_expenses
 from tests.test_expenses_api import db_facade_path
 
 from app.expenses_api.views import MAX_BATCH_SIZE, ApiError, db_facade
@@ -50,6 +50,9 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
 
         json_resp = loads(raw_resp.get_data(as_text=True))
 
+        self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json_resp]),
+                        "All returned objects must be valid expenses")
+
         self.assertEqual(batch_size, len(json_resp), "The result should be of size %i" % batch_size)
 
         property_values = [exp[self.start_from_property] for exp in json_resp]
@@ -57,9 +60,6 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
                          "Result should be sorted by the selected property descendigly")
         self.assertTrue(property_values[0] > property_values[1],
                         'The first result should be with the highest property value')
-
-        self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json_resp]),
-                        "All returned objects must be valid expenses")
 
         self.assertLess(json_resp[0][self.start_from_property], reversed_expenses[0][self.start_from_property],
                         "The start_from must be `larger` than the first result when ordered in desc order")
@@ -114,6 +114,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
         self.assertIn(ApiError.BATCH_SIZE_EXCEEDED, response_json['error'])
 
         self.assertFalse(mocked_db.get_list.called)
+
 
 @patch(db_facade_path, autospec=True)
 class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
