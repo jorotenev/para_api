@@ -67,3 +67,24 @@ class Validator:
 
             err_msg = prefix + msg
         return is_valid, err_msg
+
+
+if __name__ == "__main__":
+    valid = {
+        "id": "1",
+        "name": "server id 1",
+        "amount": 12,
+        "currency": "EUR",
+        "tags": [
+            "work",
+            "sport",
+            "sport",
+            "sport",
+
+        ],
+        "timestamp_utc": "2017-10-29T09:09:21.853071Z",
+        "timestamp_utc_created": "2017-10-29T09:09:21.853071Z",
+        "timestamp_utc_updated": "2017-10-29T09:09:21.853071Z",
+    }
+    Validator.validate_expense(valid)
+    # validate("2017-10-29T09:10:21.853071Z", timestamp_schema)
