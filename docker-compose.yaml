@@ -19,9 +19,10 @@ services:
       - AWS_DEFAULT_REGION=eu-central-1
       - AWS_SECRET_ACCESS_KEY=dummy
       - AWS_ACCESS_KEY_ID=dummy
-      - SECRET_KEY=dummy # must be defined in the host env
-      - APP_STAGE=testing # this one too
+      - SECRET_KEY=dummy
       - LOCAL_DYNAMODB_URL=http://dynamodb:8000
+
+      - APP_STAGE=testing
     command: flask test
 
   dynamodb:
