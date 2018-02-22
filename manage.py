@@ -41,7 +41,7 @@ def create_expenses_table():
     table_name = db_facade.EXPENSES_TABLE_NAME
     from app.db_facade.dynamodb.dynamo import create_table_sync
     from app.db_facade.table_schema import dynamodb_users_table_init_information
-
+    print("creating dynamodb table [%s]" % table_name)
     create_table_sync(dynamodb_resource=db_facade.raw_db,
                       table_name=table_name,
                       **dynamodb_users_table_init_information)
@@ -52,6 +52,8 @@ def create_expenses_table():
 def delete_expenses_table():
     from app.db_facade import db_facade
     table_name = db_facade.EXPENSES_TABLE_NAME
+    print("deleting dynamodb table [%s]" % table_name)
+
     from app.db_facade.dynamodb.dynamo import DELETE_table_sync
     DELETE_table_sync(dynamodb_resource=db_facade.raw_db, table_name=table_name)
     print('ok')
@@ -78,6 +80,7 @@ def seed_data():
     }
     now = datetime.datetime.now(datetime.timezone.utc)
     expenses = []
+    print("seeding dynamodb table [%s]" % db_facade.EXPENSES_TABLE_NAME)
 
     for i in range(1, 26):
         temp = seed.copy()

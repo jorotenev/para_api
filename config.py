@@ -34,11 +34,11 @@ class DevelopmentConfig(BaseConfig):
 
 
 class TestingConfig(DevelopmentConfig):
-    LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
+    CI = os.environ.get("CI", False)
     TEST_FIREBASE_UID = fake_uid
 
     TESTING = True
-    CI = os.environ.get("CI", False)
+    LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
 
     @classmethod
     def init_app(cls, app):
