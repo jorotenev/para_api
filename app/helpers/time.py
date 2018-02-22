@@ -1,5 +1,7 @@
 from datetime import datetime, timezone
 
+from dateutil.parser import parse
+
 
 def utc_now_str():
     """
@@ -19,3 +21,7 @@ def ensure_ts_str_ends_with_z(ts_string: str):
     if ts_string.endswith(suffix):
         return ts_string.replace(suffix, 'Z')
     return ts_string
+
+
+def dt_from_utc_iso_str(s):
+    return parse(s)
