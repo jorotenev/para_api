@@ -11,7 +11,8 @@ from app.models.expense_validation import Validator
 from tests.common_methods import sample_expenses
 from tests.test_expenses_api import db_facade_path
 
-from app.expenses_api.views import MAX_BATCH_SIZE, ApiError, db_facade
+from app.expenses_api.views import MAX_BATCH_SIZE, db_facade
+from app.expenses_api.api_error_msgs import ApiError
 
 endpoint = 'expenses_api.get_expenses_list'
 reversed_expenses = list(reversed(sample_expenses))

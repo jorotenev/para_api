@@ -3,7 +3,7 @@ from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from unittest.mock import patch
 from app.db_facade.facade import NoExpenseWithThisId
 from app.expenses_api.views import db_facade
-from app.expenses_api.views import ApiError
+from app.expenses_api.api_error_msgs import ApiError
 from app.models.sample_expenses import sample_expenses
 from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path

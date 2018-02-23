@@ -3,7 +3,7 @@ from tests.test_expenses_api import db_facade_path
 from json import loads
 from unittest.mock import patch
 
-from app.expenses_api.views import ApiError
+from app.expenses_api.api_error_msgs import ApiError
 from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
 from tests.common_methods import SINGLE_EXPENSE, Validator
 
