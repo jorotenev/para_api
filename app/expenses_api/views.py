@@ -24,8 +24,8 @@ def needs_firebase_uid(f):
     return decorated
 
 
-@expenses_api.route("/test", methods=['GET'])
-def test():
+@expenses_api.route("/ping", methods=['GET'])
+def ping_expenses():
     return request.get_json(force=True)
 
 
@@ -38,16 +38,6 @@ def honeypot(user_uid=None):
     """
     assert user_uid
     return 'sweet'
-
-
-def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
-    assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
-    if not none_is_ok and property_value is None:
-        assert "%s cannot be None" % property_name
-
-    if property_value is not None:
-        assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
-                                                                           (str(property_value), property_name)
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])
@@ -90,10 +80,14 @@ def get_expenses_list(user_uid=None):
     return make_json_response(response)
 
 
-def validate_persist_request(expense):
-    is_valid, err_msg = Validator.validate_expense(expense)
-    assert is_valid, "%s %s" % (ApiError.INVALID_EXPENSE, err_msg)
-    assert expense['id'] == None, ApiError.ID_PROPERTY_FORBIDDEN  # must be non
+def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
+    assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
+    if not none_is_ok and property_value is None:
+        assert "%s cannot be None" % property_name
+
+    if property_value is not None:
+        assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
+                                                                           (str(property_value), property_name)
 
 
 @expenses_api.route('/persist', methods=['POST'])
@@ -108,6 +102,12 @@ def persist(user_uid=None):
     persisted = db_facade.persist(expense=expense, user_uid=user_uid)
 
     return make_json_response(persisted, status_code=200)
+
+
+def validate_persist_request(expense):
+    is_valid, err_msg = Validator.validate_expense(expense)
+    assert is_valid, "%s %s" % (ApiError.INVALID_EXPENSE, err_msg)
+    assert expense['id'] == None, ApiError.ID_PROPERTY_FORBIDDEN  # must be non
 
 
 @expenses_api.route('/update', methods=['PUT'])
@@ -144,12 +144,6 @@ def validate_update_request(request_data):
     return True, None
 
 
-def validate_remove_request(request_data):
-    assert request_data, ApiError.EMPTY_REQUEST_BODY
-    assert Validator.validate_expense_simple(request_data), ApiError.INVALID_EXPENSE
-    assert 'id' in request_data and request_data['id'], ApiError.ID_PROPERTY_MANDATORY
-
-
 @expenses_api.route('/remove', methods=['DELETE'])
 @needs_firebase_uid
 def remove(user_uid=None):
@@ -166,21 +160,31 @@ def remove(user_uid=None):
         return make_error_response(ApiError.NO_EXPENSE_WITH_THIS_ID, status_code=404)
 
 
+def validate_remove_request(request_data):
+    assert request_data, ApiError.EMPTY_REQUEST_BODY
+    assert Validator.validate_expense_simple(request_data), ApiError.INVALID_EXPENSE
+    assert 'id' in request_data and request_data['id'], ApiError.ID_PROPERTY_MANDATORY
+
+
 @expenses_api.route('/sync', methods=['POST'])
 @needs_firebase_uid
 def sync(user_uid=None):
-    partial_expenses = request.get_json(force=True, silent=True)
+    request_data = request.get_json(force=True, silent=True)
     try:
-        assert isinstance(partial_expenses, dict), 'expected an object as payload.'
-        assert all(
-            [('timestamp_utc_updated' in partial_expense.keys()) for partial_expense in
-             partial_expenses.values()]), "the values of the object must be objects with the `timestamp_utc_updated` key"
+        validate_sync_request(request_data)
     except AssertionError as err:
         return make_error_response(str(err), status_code=400)
 
     try:
-        return db_facade.sync(sync_request_objs=partial_expenses, user_uid=user_uid)
+        return db_facade.sync(sync_request_objs=request_data, user_uid=user_uid)
     except RuntimeError as err:
         return make_error_response("problem at the back end. mi scuzi.", status_code=500)
     except DynamodbThroughputExhausted as err:
         return make_error_response("The API cannot server your request currently.", status_code=413)
+
+
+def validate_sync_request(request_data):
+    assert isinstance(request_data, dict), 'expected an object as payload.'
+    assert all(
+        [('timestamp_utc_updated' in partial_expense.keys()) for partial_expense in
+         request_data.values()]), "the values of the object must be objects with the `timestamp_utc_updated` key"
