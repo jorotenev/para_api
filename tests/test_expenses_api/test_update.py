@@ -10,6 +10,13 @@ from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.update'
+valid_payload = {'updated': SINGLE_EXPENSE.copy(), 'previous_state': SINGLE_EXPENSE.copy()}
+
+
+class TestUpdateAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def test_update(self):
+        resp = self.put(url=endpoint, data=valid_payload)
+        self.assertEqual(403, resp.status_code)
 
 
 @patch(db_facade_path, autospec=True)
@@ -17,11 +24,9 @@ class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerM
 
     def test_normal_usage(self, mocked_facade):
         mocked_facade.update.return_value = SINGLE_EXPENSE
-        updated = SINGLE_EXPENSE.copy()
-        raw_resp = self.put(url=endpoint, data={
-            'updated': updated,
-            'previous_state': updated
-        })
+        updated = valid_payload['updated'].copy()
+
+        raw_resp = self.put(url=endpoint, data=valid_payload)
 
         self.assertEqual(200, raw_resp.status_code)
         exp_json = loads(raw_resp.get_data(as_text=True))
@@ -42,10 +47,7 @@ class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerM
     def test_404_on_non_existing_expense(self, mocked_facade):
         mocked_facade.update.side_effect = NoExpenseWithThisId()
 
-        raw_resp = self.put(url=endpoint, data={
-            'updated': SINGLE_EXPENSE,
-            'previous_state': SINGLE_EXPENSE
-        })
+        raw_resp = self.put(url=endpoint, data=valid_payload)
         self.assertEqual(404, raw_resp.status_code, "Should have returned a 404 for a non-managed expense")
         self.assertIn(ApiError.NO_EXPENSE_WITH_THIS_ID, raw_resp.get_data(as_text=True))
 

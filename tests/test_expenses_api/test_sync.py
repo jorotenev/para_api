@@ -12,6 +12,13 @@ from tests.test_db_facade.test_sync import generate_sync_request
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.sync'
+valid_payload = generate_sync_request()
+
+
+class TestSyncAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def test_auth(self):
+        resp = self.post(url=endpoint, data=valid_payload)
+        self.assertEqual(403, resp.status_code)
 
 
 @patch(db_facade_path, autospec=True)
@@ -24,7 +31,7 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
             'to_update': [sample_expenses[1]]
         })
 
-        raw_resp = self.post(url=endpoint, data=generate_sync_request())
+        raw_resp = self.post(url=endpoint, data=valid_payload)
         self.assertEqual(200, raw_resp.status_code)
         json = loads(raw_resp.get_data(as_text=True))
 
@@ -51,5 +58,5 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
         ]
         for (err, expected_code) in requests:
             mocked_db.sync.side_effect = err
-            raw_resp = self.post(url=endpoint, data=generate_sync_request())
+            raw_resp = self.post(url=endpoint, data=valid_payload)
             self.assertEqual(expected_code, raw_resp.status_code)

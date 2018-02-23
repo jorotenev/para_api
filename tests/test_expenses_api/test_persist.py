@@ -8,6 +8,15 @@ from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthentica
 from tests.common_methods import SINGLE_EXPENSE, Validator
 
 endpoint = 'expenses_api.persist'
+valid_payload = {
+    **SINGLE_EXPENSE.copy(), "id": None
+}
+
+
+class TestPersistAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def test_auth(self):
+        resp = self.post(url=endpoint, data=valid_payload)
+        self.assertEqual(403, resp.status_code)
 
 
 @patch(db_facade_path, autospec=True)
@@ -16,8 +25,7 @@ class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarker
     def test_normal_usage(self, mocked_db):
         mocked_db.persist.return_value = SINGLE_EXPENSE
 
-        to_persist = SINGLE_EXPENSE.copy()
-        to_persist['id'] = None
+        to_persist = valid_payload.copy()
         raw_resp = self.post(url=endpoint, data=to_persist)
         self.assertEqual(200, raw_resp.status_code)
 
@@ -34,7 +42,7 @@ class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarker
         self.assertIn(ApiError.ID_PROPERTY_FORBIDDEN, raw_resp.get_data(as_text=True))
 
     def test_fail_on_invalid_expense(self, _):
-        raw_resp = self.post(url=endpoint, data={"id": None})
+        raw_resp = self.post(url=endpoint, data={"id": 'a'})
 
         self.assertEqual(400, raw_resp.status_code)
         self.assertIn(ApiError.INVALID_EXPENSE, raw_resp.get_data(as_text=True))

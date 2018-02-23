@@ -9,6 +9,13 @@ from tests.common_methods import SINGLE_EXPENSE
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.remove'
+valid_payload = SINGLE_EXPENSE.copy()
+
+
+class TestDeleteAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def test_auth(self):
+        resp = self.delete(url=endpoint, data=valid_payload.copy())
+        self.assertEqual(403, resp.status_code)
 
 
 @patch(db_facade_path, autospec=True)
@@ -16,7 +23,8 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerM
 
     def test_normal_usage(self, mocked_db):
         mocked_db.remove.return_value = None
-        raw_resp = self.delete(url=endpoint, data=SINGLE_EXPENSE.copy())
+
+        raw_resp = self.delete(url=endpoint, data=valid_payload)
 
         self.assertTrue(mocked_db.remove.called)
         self.assertEqual(200, raw_resp.status_code)

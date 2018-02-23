@@ -17,6 +17,19 @@ from app.expenses_api.api_error_msgs import ApiError
 endpoint = 'expenses_api.get_expenses_list'
 reversed_expenses = list(reversed(sample_expenses))
 
+valid_request_args = {
+    "start_from_id": 'some id',
+    "start_from_property": 'timestamp_utc',
+    "start_from_property_value": utc_now_str(),
+    "batch_size": 10,
+    "ordering_direction": 'desc'
+}
+
+
+class TestGetListAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
+    def test_auth(self):
+        resp = self.get(url=endpoint, url_args=valid_request_args.copy())
+        self.assertEqual(403, resp.status_code)
 
 
 @patch(db_facade_path, autospec=True)
@@ -26,19 +39,13 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticati
 
         self.start_from_property = 'timestamp_utc'
         self.start_from_property_value = utc_now_str()
-        self.valid_request_args = {
-            "start_from_id": 'some id',
-            "start_from_property": 'timestamp_utc',
-            "start_from_property_value": utc_now_str(),
-            "batch_size": 10,
-            "ordering_direction": 'desc'
-        }
+        self.valid_request_args = valid_request_args
 
     def test_valid_request_returns_valid_response(self, mocked_db):
         mocked_db.get_list.return_value = reversed_expenses[1:]
         batch_size = len(reversed_expenses) - 1
 
-        request_params = self.valid_request_args.copy()
+        request_params = valid_request_args.copy()
         request_params['start_from_property'] = self.start_from_property
         request_params['start_from_property_value'] = self.start_from_property_value
         request_params['start_from_id'] = reversed_expenses[0]['id']
@@ -104,7 +111,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticati
 
     def test_with_too_big_batch_size(self, mocked_db):
         batch_size = 100 + MAX_BATCH_SIZE
-        url_args = self.valid_request_args.copy()
+        url_args = valid_request_args.copy()
         url_args['batch_size'] = batch_size
 
         raw_resp = self.get(url=endpoint, url_args=url_args)
