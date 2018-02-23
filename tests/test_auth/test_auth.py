@@ -3,7 +3,6 @@ from flask import current_app
 
 
 class TestAuthHeader(BaseTest, BaseTestWithHTTPMethodsMixin):
-    auth_header_name = current_app.config['CUSTOM_AUTH_HEADER_NAME']
 
     def test_request_to_protected_resources_requires_auth_token(self):
         default_args = {}

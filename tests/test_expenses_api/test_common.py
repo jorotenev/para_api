@@ -9,5 +9,3 @@ class ExampleTest(BaseTest, BaseTestWithHTTPMethodsMixin):
         config = current_app.config
         response = self.get('api.ping', raw_response=False)
         self.assertIn('pong', response, "The HTML of the index page doesn't contain expected text")
-
-

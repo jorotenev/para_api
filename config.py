@@ -7,8 +7,14 @@ fake_uid = 'fake firebase uid'
 
 class BaseConfig(object):
     EXPENSES_API_VERSION = 'v1'
-
     APP_STAGE = os.environ['APP_STAGE']
+
+    FIREBASE_CONFIG_JSON = os.environ['FIREBASE_CONFIG_JSON']
+
+    # if true, the contents of `CUSTOM_AUTH_HEADER_NAME` will be treated as readily validated and extracted firebase uid
+    # if false, the contents of CUSTOM_AUTH_HEADER_NAME will be validated via the firebase admin sdk and a firebase user uid
+    # will be extracted from the contents of the header
+    SHORT_CIRCUIT_FIREBASE = False
     TESTING = False
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
     CI = False  # are we in a continuous integration environment
@@ -25,6 +31,7 @@ class BaseConfig(object):
 
 
 class DevelopmentConfig(BaseConfig):
+    SHORT_CIRCUIT_FIREBASE = bool(int(os.environ.get("SHORT_CIRCUIT_FIREBASE", "0")))
     LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
     TEST_FIREBASE_UID = fake_uid
 
@@ -35,7 +42,9 @@ class DevelopmentConfig(BaseConfig):
 
 class TestingConfig(DevelopmentConfig):
     CI = os.environ.get("CI", False)
+
     TEST_FIREBASE_UID = fake_uid
+    SHORT_CIRCUIT_FIREBASE = bool(int(os.environ.get("SHORT_CIRCUIT_FIREBASE", "0")))
 
     TESTING = True
     LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)

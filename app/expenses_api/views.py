@@ -34,14 +34,7 @@ def needs_firebase_uid(f):
 
 @expenses_api.route("/ping", methods=['GET'])
 def ping_expenses():
-    request.asd = 1
-    return str(request.asd)
-    # if 'asd' in g:
-    #     g.asd = g.asd + 1
-    # else:
-    #     g.asd = 0
-    # return str(g.asd)
-    # return request.get_json(force=True)
+    return str('pong')
 
 
 @expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
@@ -52,7 +45,7 @@ def honeypot():
     :return:
     """
     assert request.user_uid
-    return 'sweet'
+    return 'hi %s' % request.user_uid
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])

@@ -23,13 +23,15 @@ def create_app(config_name):
     """
     from config import EnvironmentName
     from app.db_facade import db_facade
-
+    from app.auth.firebase import init_firebase
     print("Creating an app for environment: [%s]" % config_name)
     if config_name not in EnvironmentName.all_names():
         raise KeyError('config_name must be one of [%s]' % ", ".join(EnvironmentName.all_names()))
 
     app = _base_app(config_name=config_name)
     db_facade.init_app(app)
+    if config_name is not EnvironmentName.testing:
+        init_firebase(app)
 
     from .main import main as main_blueprint
     from .api import api as api_blueprint
