@@ -1,4 +1,4 @@
-from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerMixin
 
 from json import loads, dumps
 from unittest.mock import patch
@@ -15,7 +15,7 @@ endpoint = 'expenses_api.sync'
 
 
 @patch(db_facade_path, autospec=True)
-class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.sync.return_value = dumps({

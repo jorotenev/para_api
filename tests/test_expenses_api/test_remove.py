@@ -1,4 +1,4 @@
-from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin
 
 from unittest.mock import patch
 from app.db_facade.facade import NoExpenseWithThisId
@@ -12,7 +12,7 @@ endpoint = 'expenses_api.remove'
 
 
 @patch(db_facade_path, autospec=True)
-class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.remove.return_value = None
@@ -44,7 +44,7 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin):
 
 
 @patch(db_facade_path, autospec=True)
-class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
     def test_normal_usage(self, mocked_db: type(db_facade)):
         mocked_db.remove.return_value = True
         exp = SINGLE_EXPENSE.copy()

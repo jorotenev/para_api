@@ -1,6 +1,9 @@
 import json
-from flask import request, current_app
+from flask import request, current_app, g
+from werkzeug.exceptions import abort
+
 from app.api_utils.response import make_json_response, make_error_response
+from app.auth.firebase import FirebaseTokenValidator
 from app.db_facade import db_facade
 from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId, DynamodbThroughputExhausted
 from app.db_facade.misc import OrderingDirection
@@ -14,35 +17,49 @@ from functools import wraps
 def needs_firebase_uid(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        firebase_token = current_app.config['TEST_FIREBASE_UID']  # TODO
         try:
-            request.headers[current_app.config['CUSTOM_AUTH_HEADER_NAME']]
-        except:
-            return make_error_response("can't find auth token", status_code=403)
-        return f(*args, **kwargs, user_uid=firebase_token)
+
+            header_name = current_app.config['CUSTOM_AUTH_HEADER_NAME']
+
+            id_token = request.headers.get(header_name, None)
+            user_uid = FirebaseTokenValidator.validate_id_token_and_get_uid(id_token=id_token)
+
+            request.user_uid = user_uid
+            return f(*args, **kwargs)
+        except FirebaseTokenValidator.FirebaseIdTokenValidationExc:
+            abort(make_error_response("can't find id_token in the %s header" % header_name, status_code=403))
 
     return decorated
 
 
 @expenses_api.route("/ping", methods=['GET'])
 def ping_expenses():
-    return request.get_json(force=True)
+    request.asd = 1
+    return str(request.asd)
+    # if 'asd' in g:
+    #     g.asd = g.asd + 1
+    # else:
+    #     g.asd = 0
+    # return str(g.asd)
+    # return request.get_json(force=True)
 
 
 @expenses_api.route("/honeypot", methods=['GET', 'POST', 'PUT', 'DELETE'])
 @needs_firebase_uid
-def honeypot(user_uid=None):
+def honeypot():
     """
     endpoint used to verify that protected routes require auth
     :return:
     """
-    assert user_uid
+    assert request.user_uid
     return 'sweet'
 
 
 @expenses_api.route("/get_expenses_list", methods=['GET'])
 @needs_firebase_uid
-def get_expenses_list(user_uid=None):
+def get_expenses_list():
+    user_uid = request.user_uid
+
     property_name = request.args.get('start_from_property', default='timestamp_utc')
     property_value = request.args.get('start_from_property_value', default=None)
     ordering_direction = request.args.get("ordering_direction", default='desc')
@@ -50,14 +67,8 @@ def get_expenses_list(user_uid=None):
     batch_size = request.args.get('batch_size', type=int, default=10)
 
     try:
-        validate_get_expenses_list_property_value(property_name, property_value)
-        assert OrderingDirection.is_member(ordering_direction), ApiError.INVALID_ORDER_PARAM
-
-        if property_value:
-            assert expense_id, "If a property_value is set, the start_from_id is mandatory"
-
-        assert batch_size < MAX_BATCH_SIZE, ApiError.BATCH_SIZE_EXCEEDED
-        assert batch_size > 0, ApiError.INVALID_BATCH_SIZE
+        validate_get_expenses_list(property_name=property_name, property_value=property_value, expense_id=expense_id,
+                                   ordering_direction=ordering_direction, batch_size=batch_size)
     except AssertionError as ex:
         status_code = 400
         if ApiError.BATCH_SIZE_EXCEEDED in str(ex):
@@ -80,19 +91,29 @@ def get_expenses_list(user_uid=None):
     return make_json_response(response)
 
 
-def validate_get_expenses_list_property_value(property_name, property_value, none_is_ok=True):
+def validate_get_expenses_list(property_name, property_value,
+                               expense_id, ordering_direction, batch_size,
+                               none_is_ok=True):
     assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
-    if not none_is_ok and property_value is None:
-        assert "%s cannot be None" % property_name
 
     if property_value is not None:
         assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
                                                                            (str(property_value), property_name)
 
+    assert OrderingDirection.is_member(ordering_direction), ApiError.INVALID_ORDER_PARAM
+
+    if property_value:
+        assert expense_id, "If a property_value is set, the start_from_id is mandatory"
+
+    assert batch_size < MAX_BATCH_SIZE, ApiError.BATCH_SIZE_EXCEEDED
+    assert batch_size > 0, ApiError.INVALID_BATCH_SIZE
+
 
 @expenses_api.route('/persist', methods=['POST'])
 @needs_firebase_uid
-def persist(user_uid=None):
+def persist():
+    user_uid = request.user_uid
+
     expense = request.get_json(force=True, silent=True)
     try:
         validate_persist_request(expense)
@@ -112,7 +133,9 @@ def validate_persist_request(expense):
 
 @expenses_api.route('/update', methods=['PUT'])
 @needs_firebase_uid
-def update(user_uid=None):
+def update():
+    user_uid = request.user_uid
+
     request_data = request.get_json(force=True, silent=True)
     is_valid, error_msg = validate_update_request(request_data)
     if not is_valid:
@@ -146,7 +169,9 @@ def validate_update_request(request_data):
 
 @expenses_api.route('/remove', methods=['DELETE'])
 @needs_firebase_uid
-def remove(user_uid=None):
+def remove():
+    user_uid = request.user_uid
+
     expense_to_delete = request.get_json(force=True, silent=True)
     try:
         validate_remove_request(expense_to_delete)
@@ -168,7 +193,9 @@ def validate_remove_request(request_data):
 
 @expenses_api.route('/sync', methods=['POST'])
 @needs_firebase_uid
-def sync(user_uid=None):
+def sync():
+    user_uid = request.user_uid
+
     request_data = request.get_json(force=True, silent=True)
     try:
         validate_sync_request(request_data)

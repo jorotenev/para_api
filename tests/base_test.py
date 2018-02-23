@@ -1,13 +1,14 @@
 import json
 import unittest
 from flask import url_for, Response, current_app
-
+from unittest.mock import MagicMock
+from app.expenses_api.views import FirebaseTokenValidator
 from config import EnvironmentName
 from app import create_app
 
 
 class BaseTest(unittest.TestCase):
-    firebase_uid = 'not set yet'
+    # firebase_uid = 'not set yet'
 
     # on class creation
     @classmethod
@@ -28,10 +29,23 @@ class BaseTest(unittest.TestCase):
         cls.app_context.pop()
 
     def setUp(self):
-        pass
+        if isinstance(self, NoAuthenticationMarkerMixin):
+            self.original_firebase_validator = FirebaseTokenValidator.validate_id_token_and_get_uid
+            self.firebase_mock = MagicMock()
+            self.firebase_mock.return_value = self.firebase_uid
+            FirebaseTokenValidator.validate_id_token_and_get_uid = self.firebase_mock
 
     def tearDown(self):
-        pass
+        if isinstance(self, NoAuthenticationMarkerMixin):
+            FirebaseTokenValidator.validate_id_token_and_get_uid = self.original_firebase_validator
+
+
+class NoAuthenticationMarkerMixin(object):
+    """
+    if a test extends this mixin, then the validation and extraction of
+    a firebase uid will be short circuited and a default firebase uid will be returned.
+    """
+    pass
 
 
 class BaseTestWithHTTPMethodsMixin(object):
@@ -65,7 +79,7 @@ class BaseTestWithHTTPMethodsMixin(object):
         :returns the data of the response (e.g. the return of the view function of the server)
         """
         headers = headers if headers is not None else [(current_app.config.get("CUSTOM_AUTH_HEADER_NAME"),
-                                                        BaseTest.firebase_uid)]
+                                                        self.firebase_uid)]
         common_args = [url_for(url, **url_for_args, _external=True)]
         jsonified = data
         if not isinstance(data, str) and data:
@@ -78,7 +92,7 @@ class BaseTestWithHTTPMethodsMixin(object):
             'headers': headers  # [('Content-Type', 'text/html; charset=utf-8'),]
         }
         method_name = method.lower()
-        print('calling %s' % method_name)
+
         method = getattr(self.client, method_name)
         if not method:
             raise Exception("unknown method %s" % method_name)

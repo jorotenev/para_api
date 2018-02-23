@@ -4,14 +4,14 @@ from json import loads
 from unittest.mock import patch
 
 from app.expenses_api.api_error_msgs import ApiError
-from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin
 from tests.common_methods import SINGLE_EXPENSE, Validator
 
 endpoint = 'expenses_api.persist'
 
 
 @patch(db_facade_path, autospec=True)
-class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_db):
         mocked_db.persist.return_value = SINGLE_EXPENSE
@@ -41,7 +41,7 @@ class TestPersist(BaseTest, BaseTestWithHTTPMethodsMixin):
 
 
 @patch(db_facade_path, autospec=True)
-class TestPersistUsesDbFacadeCorrectly(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestPersistUsesDbFacadeCorrectly(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
     def test_normal_usage(self, mocked_db):
         mocked_db.persist.return_value = SINGLE_EXPENSE
         to_persist = SINGLE_EXPENSE.copy()

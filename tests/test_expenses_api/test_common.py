@@ -16,6 +16,6 @@ class TestAuthHeader(BaseTest, BaseTestWithHTTPMethodsMixin):
 
     def test_request_to_protected_resources_requires_auth_token(self):
         default_args = {}  # api will use its defaults
-        raw_resp = self.get('expenses_api.honeypot', url_args=default_args, headers={})
+        raw_resp = self.get('expenses_api.honeypot', url_args=default_args, headers=[])
         self.assertEqual(403, raw_resp.status_code,
                          'making a request to a protected resource should require a valid auth token')

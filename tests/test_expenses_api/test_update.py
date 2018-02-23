@@ -1,4 +1,4 @@
-from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest
+from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerMixin
 
 from json import loads
 from unittest.mock import patch
@@ -13,7 +13,7 @@ endpoint = 'expenses_api.update'
 
 
 @patch(db_facade_path, autospec=True)
-class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest):
+class TestUpdate(BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_facade):
         mocked_facade.update.return_value = SINGLE_EXPENSE

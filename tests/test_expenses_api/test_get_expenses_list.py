@@ -1,4 +1,4 @@
-from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin
+from tests.base_test import BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin
 
 from json import loads
 
@@ -18,8 +18,9 @@ endpoint = 'expenses_api.get_expenses_list'
 reversed_expenses = list(reversed(sample_expenses))
 
 
+
 @patch(db_facade_path, autospec=True)
-class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
     def setUp(self):
         super(TestGETExpensesList, self).setUp()
 
@@ -118,7 +119,7 @@ class TestGETExpensesList(BaseTest, BaseTestWithHTTPMethodsMixin):
 
 
 @patch(db_facade_path, autospec=True)
-class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin):
+class TestGetExpensesListInteractionWithDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
     def test_call_on_good_request(self, mocked_db: type(db_facade)):
         mocked_db.get_list.return_value = []
         property_value = utc_now_str()
