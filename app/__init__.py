@@ -1,4 +1,8 @@
-from flask import Flask
+import os
+
+import flask
+import rollbar
+from flask import Flask, got_request_exception, Request
 
 
 def _base_app(config_name):
@@ -31,6 +35,9 @@ def create_app(config_name):
     app = _base_app(config_name=config_name)
     db_facade.init_app(app)
     if config_name is not EnvironmentName.testing:
+        init_rollbar(app)
+
+    if config_name is not EnvironmentName.testing:
         init_firebase(app)
 
     from .main import main as main_blueprint
@@ -46,3 +53,38 @@ def create_app(config_name):
     app.register_blueprint(expenses_api_blueprint, url_prefix="/expenses_api/%s" % api_version)
 
     return app
+
+
+def init_rollbar(app):
+    from config import EnvironmentName
+
+    stage = app.config.get("APP_STAGE")
+
+    rollbar.init(
+        # access token for the demo app: https://rollbar.com/demo
+        app.config['ROLLBAR_CLIENT_TOKEN'],
+        # environment name
+        app.config.get('APP_STAGE'),
+        # server root directory, makes tracebacks prettier
+        root=os.path.dirname(os.path.realpath(__file__)),
+        # flask already sets up logging
+        allow_logging_basic_config=False,
+        # play nice with aws lambda
+        handler='blocking')
+
+    # send exceptions from `app` to rollbar, using flask's signal system.
+    from rollbar.contrib.flask import report_exception
+    got_request_exception.connect(report_exception)
+
+    class CustomRequest(Request):
+        @property
+        def rollbar_person(self):
+            # 'id' is required, 'username' and 'email' are indexed but optional.
+            # all values are strings.
+            usr = {"id": "unknown"}
+            if getattr(self, "user_uid"):
+                return {"id": self.user_uid, "user_uid": self.user_uid}
+            else:
+                return usr
+
+    app.request_class = CustomRequest
