@@ -3,7 +3,7 @@ from flask import current_app
 from firebase_admin.credentials import Certificate
 from firebase_admin.auth import verify_id_token
 from firebase_admin import initialize_app as initialize_firebase_app
-
+from base64 import b64decode
 from config import EnvironmentName
 
 firebase_app = None
@@ -14,8 +14,10 @@ def init_firebase(flask_app):
     https://firebase.google.com/docs/admin/setup
     """
     global firebase_app
-    conf = flask_app.config.get("FIREBASE_CONFIG_JSON", "{}")
+    conf = flask_app.config.get("FIREBASE_CONFIG_JSON", "")
+    conf = b64decode(conf).decode()
     conf_json = json.loads(conf)
+
     conf_json['private_key'] = conf_json['private_key'].replace("\\n", '\n')
     credentials = Certificate(conf_json)
 
