@@ -1,11 +1,26 @@
 {
-    "staging": {
-        "app_function": "manage.app",
-        "aws_region": "eu-central-1",
-        "profile_name": "para_staging",
-        "project_name": "para-api",
-        "runtime": "python3.6",
-        "s3_bucket": "zappa-para-staging",
-        "remote_env": "s3://para-config-bucket/staging.json"
-    }
+  "staging": {
+    "app_function": "manage.app",
+    "aws_region": "eu-central-1",
+    "profile_name": "para_staging",
+    "manage_roles": false,
+    "role_name": "custom-para-api-staging-role",
+    "project_name": "para-api",
+    "runtime": "python3.6",
+    "s3_bucket": "zappa-para-staging",
+    "remote_env": "s3://para-config-bucket/staging.json",
+    "debug": true,
+    "exclude": [
+      ".aws_para_config",
+      "tests",
+      ".circleci",
+      ".git"
+    ],
+    "memory_size": 256,
+    "tags": {
+      "stage": "staging",
+      "project": "para"
+    },
+    "timeout_seconds": 60
+  }
 }
