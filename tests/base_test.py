@@ -14,7 +14,7 @@ class BaseTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.app = create_app(config_name=EnvironmentName.testing)
-        cls.firebase_uid = cls.app.config['TEST_FIREBASE_UID']
+        cls.firebase_uid = cls.app.config['DUMMY_FIREBASE_UID']
         # this is needed to make url_for work
         cls.app.config['SERVER_NAME'] = 'localhost'
 

@@ -75,11 +75,14 @@ def seed_data():
     _seed_data_no_ctx()
 
 
-def _seed_data_no_ctx():
+def _seed_data_no_ctx(firebase_uid=None):
     with app.app_context():
         import uuid, datetime
         from app.db_facade.facade import db_facade
         from flask import current_app
+        firebase_uid = firebase_uid or current_app.config['DUMMY_FIREBASE_UID']
+        assert firebase_uid
+
         seed = {
             "id": "",
             "name": "",
@@ -100,7 +103,7 @@ def _seed_data_no_ctx():
 
         for i in range(1, 26):
             temp = seed.copy()
-            temp['user_uid'] = current_app.config['TEST_FIREBASE_UID']
+            temp['user_uid'] = firebase_uid
             temp['id'] = str(uuid.uuid4())
             temp['name'] = 'server id ' + str(i)
             temp['timestamp_utc'] = temp['timestamp_utc_created'] = temp[
@@ -128,6 +131,9 @@ def boom():
     print("command ran in %s" % app.config['APP_STAGE'])
 
 
-def bau():
+def bau(opa=None):
+    if opa:
+        print(opa)
     with app.app_context():
         print(app.config['APP_STAGE'])
+        print(app.config['DUMMY_FIREBASE_UID'])

@@ -19,7 +19,7 @@ class BaseConfig(object):
     SECRET_KEY = os.environ['SECRET_KEY']  # this will fail if the SECRET_KEY environmental variables is not set
     CI = False  # are we in a continuous integration environment
     SITE_NAME = os.environ.get("SITE_NAME", "site_name.com")
-
+    DUMMY_FIREBASE_UID = os.environ.get("DUMMY_FIREBASE_UID", "")
     # makes it possible to create an app when the expenses table is empty
     DB_PING_LAZY = os.environ.get("DB_PING_LAZY", False)
     CUSTOM_AUTH_HEADER_NAME = "x-firebase-auth-token"
@@ -33,7 +33,7 @@ class BaseConfig(object):
 class DevelopmentConfig(BaseConfig):
     SHORT_CIRCUIT_FIREBASE = bool(int(os.environ.get("SHORT_CIRCUIT_FIREBASE", "0")))
     LOCAL_DYNAMODB_URL = os.environ.get("LOCAL_DYNAMODB_URL", local_dynamodb_url)
-    TEST_FIREBASE_UID = fake_uid
+    DUMMY_FIREBASE_UID = fake_uid
 
     @classmethod
     def init_app(cls, app):
@@ -43,7 +43,7 @@ class DevelopmentConfig(BaseConfig):
 class TestingConfig(DevelopmentConfig):
     CI = os.environ.get("CI", False)
 
-    TEST_FIREBASE_UID = fake_uid
+    DUMMY_FIREBASE_UID = fake_uid
     SHORT_CIRCUIT_FIREBASE = bool(int(os.environ.get("SHORT_CIRCUIT_FIREBASE", "0")))
 
     TESTING = True
