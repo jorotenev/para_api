@@ -41,7 +41,7 @@
       `{error: "<reason>"}`
       * `404` on expense with such id not found or not authorized to update this expense
       `{error: "<reason>"}`
-* __DELETE__ `/remove`
+* __POST__ `/remove`
   * payload
      ```
      {<expense object>}

@@ -160,7 +160,7 @@ def validate_update_request(request_data):
     return True, None
 
 
-@expenses_api.route('/remove', methods=['DELETE'])
+@expenses_api.route('/remove', methods=['POST'])
 @needs_firebase_uid
 def remove():
     user_uid = request.user_uid
