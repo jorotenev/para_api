@@ -253,7 +253,7 @@ class __DbFacade(object):
     def update(self, expense, old_expense, user_uid):
         """
 
-        :param expense: a valid expense object with an `id`. the updated expense.
+        :param exp: a valid expense object with an `id`. the updated expense.
         :param old_expense: a valid expense object with an `id`. the state of `expense` before it was updated
         :param user_uid:
         :return: upon success, the expense, but with updated timestamp_utc_updated
@@ -264,21 +264,21 @@ class __DbFacade(object):
         either when there's no expense with the same key, or when the expense at rest has a different id (which
         is not a valid application state) than `expense`.
         """
-        expense = expense.copy()
+        exp = expense.copy()
         old_expense = old_expense.copy()
 
-        if expense['id'] != old_expense['id']:
+        if exp['id'] != old_expense['id']:
             raise ValueError("The `id`s of the updated and the old expense don't match")
 
-        touch_timestamp(expense, 'timestamp_utc_updated')
+        touch_timestamp(exp, 'timestamp_utc_updated')
 
-        if expense[self.RANGE_KEY] == old_expense[self.RANGE_KEY]:
-            self._standard_update(expense, user_uid)
+        if exp[self.RANGE_KEY] == old_expense[self.RANGE_KEY]:
+            self._standard_update(exp, user_uid)
         else:
             # https://stackoverflow.com/a/30314563/4509634 You can use UpdateItem to update any nonkey attributes.
-            self._two_phase_update(expense, old_expense, user_uid)
+            self._two_phase_update(exp, old_expense, user_uid)
 
-        return expense
+        return exp
 
     def remove(self, expense, user_uid):
         """
@@ -300,7 +300,7 @@ class __DbFacade(object):
             )
         except Exception as err:
             if "ConditionalCheckFailedException" in str(err):
-                # either there's not exepnse with such Key,or the expense at rest has different `id`.
+                # either there's not expense with such Key,or the expense at rest has different `id`.
                 raise NoExpenseWithThisId()
             else:
                 raise err
@@ -332,7 +332,7 @@ class __DbFacade(object):
 
             result['to_update'] = [convert(sanitize_expense(e)) for e in result['to_update']]
             result['to_add'] = [convert(sanitize_expense(e)) for e in result['to_add']]
-            
+
             return result
         except Exception as ex:
             if "ProvisionedThroughputExceededException" in str(ex):
@@ -428,7 +428,6 @@ class __DbFacade(object):
                 # only replace if the item in the db and the updated item have the same id
                 ConditionExpression=Attr('id').eq(expense['id'])
             )
-            return previous_exp['Attributes'] if 'Attributes' in previous_exp else None
         except Exception as ex:
             if "ConditionalCheckFailedException" in str(ex):
                 raise NoExpenseWithThisId \
@@ -452,15 +451,17 @@ class __DbFacade(object):
         # delete the old expense and put the updated one in a single batch
         # it's fine because they have different sort keys
 
-        self._facade_put_item(context=self.expenses_table, expense=expense, user_uid=user_uid)
+        updated = self._facade_put_item(context=self.expenses_table, expense=expense, user_uid=user_uid, add_id=False)
 
         # wouldn't delete the old expense if the put_item above raised an exception (ItemWithSameRangeKeyExists)
         self.expenses_table.delete_item(Key={
+
             'user_uid': user_uid,
             'timestamp_utc': old_expense['timestamp_utc']
         })
+        return updated
 
-    def _facade_put_item(self, context, expense, user_uid):
+    def _facade_put_item(self, context, expense, user_uid, add_id=True):
         """
         prepares an expense for persisting and writes it to the db.
         returns the item that was written to the db
@@ -474,16 +475,22 @@ class __DbFacade(object):
         :raises PersistFailed
         """
         exp = expense.copy()
-        exp['id'] = str(uuid.uuid4())
+        if add_id:
+            if (expense['id']):
+                raise RuntimeError('dangerous operation. cannot add id to an expense which already has id')
+            exp['id'] = str(uuid.uuid4())
         exp['user_uid'] = user_uid
 
         query_kwargs = {
             "ConditionExpression": Attr(self.RANGE_KEY).not_exists()
         }
+
         try:
             context.put_item(
                 Item=self.converter.convertToDbFormat(exp),
                 **query_kwargs)
+
+            return exp
         except Exception as ex:
             if "ConditionalCheckFailedException" in str(ex):
                 raise ItemWithSameRangeKeyExists("Item with RANGE key %s already exists" % exp[self.RANGE_KEY])
@@ -491,8 +498,6 @@ class __DbFacade(object):
                 raise PersistFailed(str(ex))
             else:
                 raise ex
-
-        return exp
 
 
 class NoSuchUser(Exception):

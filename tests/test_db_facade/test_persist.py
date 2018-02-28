@@ -33,7 +33,8 @@ class TestPersist(DbTestBase):
         self.assertEqual(raw_persisted_expense['id'], persisted['id'])
 
     def test_timestamp(self):
-        exp = sample_expenses[0]
+        exp = sample_expenses[0].copy()
+        exp['id'] = None
 
         persisted = self.facade.persist(exp, user_uid=self.firebase_uid)
         now = dt_from_utc_iso_str(utc_now_str())
@@ -51,6 +52,7 @@ class TestPersist(DbTestBase):
 
         invalid_expense_1 = SINGLE_EXPENSE.copy()
         del invalid_expense_1['timestamp_utc']
+        invalid_expense_1['id'] = None
         invalid_expenses.append(invalid_expense_1)
 
         for invalid_expense in invalid_expenses:
@@ -64,6 +66,6 @@ class TestPersist(DbTestBase):
 
     @seed_data
     def test_fails_on_duplicate_range_key(self):
-        persisted = sample_expenses[0]
-
+        persisted = sample_expenses[0].copy()
+        persisted['id'] = None
         self.assertRaises(ItemWithSameRangeKeyExists, self.facade.persist, persisted, self.firebase_uid)

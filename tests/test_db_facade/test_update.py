@@ -1,3 +1,4 @@
+from app.helpers.time import utc_now_str
 from tests.test_db_facade.test_db_base import DbTestBase
 
 from app.db_facade.facade import NoExpenseWithThisId, sanitize_expense
@@ -34,7 +35,27 @@ class TestUpdate(DbTestBase):
         self.assertTrue(Validator.validate_expense_simple(exp_from_db))
 
         self.assertEqual(exp_from_db['id'], old_expense['id'])
+        self.assertTrue(to_update['id'] == updated['id'] == old_expense['id'])
         self.assertEqual(exp_from_db['amount'], new_amount)
+
+    @seed_data
+    def test_on_range_attr_updated(self):
+        old_exp = sample_expenses[0].copy()
+        to_update = old_exp.copy()
+        assert 'timestamp_utc' == self.facade.RANGE_KEY
+        to_update['timestamp_utc'] = utc_now_str()
+        assert to_update['timestamp_utc'] != old_exp['timestamp_utc']
+
+        updated = self.facade.update(to_update, old_exp, user_uid=self.firebase_uid)
+        self.assertTrue(updated['id'] == to_update['id'] == old_exp['id'])
+        # check the item in the database now
+        exp_from_db = self.expenses_table.get_item(
+            Key={
+                'user_uid': self.firebase_uid,
+                'timestamp_utc': updated['timestamp_utc']
+            },
+            ConsistentRead=True)['Item']
+        self.assertTrue(exp_from_db['id'] == old_exp['id'])
 
     @seed_data
     def test_timestamp_is_updated(self):
