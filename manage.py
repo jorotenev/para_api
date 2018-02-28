@@ -91,7 +91,6 @@ def _seed_data_no_ctx(firebase_uid=None):
             "currency": "EUR",
             "tags": [
                 "vacation",
-                "vacation",
                 "work"
             ],
             "timestamp_utc": "",
