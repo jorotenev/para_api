@@ -328,10 +328,11 @@ class __DbFacade(object):
         try:
             items = self._sync_get_items(user_uid)
             result = self._sync_process_items(items, sync_request_objs)
+            convert = self.converter.convertFromDbFormat
 
-            result['to_update'] = [sanitize_expense(e) for e in result['to_update']]
-            result['to_add'] = [sanitize_expense(e) for e in result['to_add']]
-
+            result['to_update'] = [convert(sanitize_expense(e)) for e in result['to_update']]
+            result['to_add'] = [convert(sanitize_expense(e)) for e in result['to_add']]
+            
             return result
         except Exception as ex:
             if "ProvisionedThroughputExceededException" in str(ex):

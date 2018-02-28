@@ -188,15 +188,15 @@ def validate_remove_request(request_data):
 @needs_firebase_uid
 def sync():
     user_uid = request.user_uid
-
     request_data = request.get_json(force=True, silent=True)
+
     try:
         validate_sync_request(request_data)
     except AssertionError as err:
         return make_error_response(str(err), status_code=400)
 
     try:
-        return db_facade.sync(sync_request_objs=request_data, user_uid=user_uid)
+        return make_json_response(db_facade.sync(sync_request_objs=request_data, user_uid=user_uid))
     except RuntimeError as err:
         return make_error_response("problem at the back end. mi scuzi.", status_code=500)
     except DynamodbThroughputExhausted as err:

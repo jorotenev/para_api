@@ -25,11 +25,11 @@ class TestSyncAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
 class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_db):
-        mocked_db.sync.return_value = dumps({
+        mocked_db.sync.return_value = {
             'to_remove': ['some uuid'],
             'to_add': [SINGLE_EXPENSE],
             'to_update': [sample_expenses[1]]
-        })
+        }
 
         raw_resp = self.post(url=endpoint, data=valid_payload)
         self.assertEqual(200, raw_resp.status_code)
