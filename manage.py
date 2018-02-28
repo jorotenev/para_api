@@ -123,6 +123,7 @@ def _seed_data_no_ctx(firebase_uid=None):
                 unprocessed_items = resp['UnprocessedItems'][db_facade.EXPENSES_TABLE_NAME]
             else:
                 break  # no unprocessed items -> done
+        print('=' * 10)
         print('ok')
 
 

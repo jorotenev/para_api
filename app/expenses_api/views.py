@@ -44,6 +44,10 @@ def honeypot():
     endpoint used to verify that protected routes require auth
     :return:
     """
+    payload = request.get_json(force=True, silent=True)
+    if payload:
+        if 'fail' in payload:
+            assert False
     assert request.user_uid
     return 'hi %s' % request.user_uid
 
