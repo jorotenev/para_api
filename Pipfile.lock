@@ -1,19 +1,19 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "99975cbde9d56847df9540874014a4bbdbfdfa9cc24cd62f39bd9f14ebab5665"
+            "sha256": "2c77402bac7b3957b8d2da2ac46ff4875996ceabfe5103d5bdecb949cf2cef58"
         },
         "host-environment-markers": {
             "implementation_name": "cpython",
-            "implementation_version": "3.5.2",
+            "implementation_version": "3.6.3",
             "os_name": "posix",
             "platform_machine": "x86_64",
             "platform_python_implementation": "CPython",
-            "platform_release": "4.13.0-32-generic",
+            "platform_release": "4.13.0-36-generic",
             "platform_system": "Linux",
-            "platform_version": "#35~16.04.1-Ubuntu SMP Thu Jan 25 10:13:43 UTC 2018",
-            "python_full_version": "3.5.2",
-            "python_version": "3.5",
+            "platform_version": "#40~16.04.1-Ubuntu SMP Fri Feb 16 23:25:58 UTC 2018",
+            "python_full_version": "3.6.3",
+            "python_version": "3.6",
             "sys_platform": "linux"
         },
         "pipfile-spec": 6,
@@ -49,17 +49,17 @@
         },
         "boto3": {
             "hashes": [
-                "sha256:f632d8053b667ef99709ca7fc31a87b8bceb1fcaf55c02f0ce269cd9ed09af52",
-                "sha256:d56a6ac2f2221bddf77fbd0ce3aa07ed6cd3bcd57b4e22aec5054e53a0334451"
+                "sha256:f244c9f3a9e0a6492dd58eb2ef8dd7e305f744f9f9ca7b83ba4e9165d2d5ad38",
+                "sha256:de924f18c50a496df7298ed462a2673613b384351599624b33175207722dc5bb"
             ],
-            "version": "==1.5.25"
+            "version": "==1.6.1"
         },
         "botocore": {
             "hashes": [
-                "sha256:fe78e5944701c59178bc3a0968070636039de434741ef5acda41d99f9b72ceac",
-                "sha256:fe0b45216e3a34507aefdf7a67bf53f9303abb23ba4b1899824d16ecfa0433fd"
+                "sha256:7778128a12f886fc5e86ea5e9ff81cd55aa5b33272e8da08e530b67d39a9acc6",
+                "sha256:2a673d9289fc5d14b45fa904673d8f6d226ebfc238c0f354ac8d4e8955329152"
             ],
-            "version": "==1.8.49"
+            "version": "==1.9.1"
         },
         "cachetools": {
             "hashes": [
