@@ -89,7 +89,7 @@ def validate_get_expenses_list(property_name, property_value,
                                none_is_ok=True):
     assert property_name in expense_schema['properties'].keys(), "%s is not a valid expense property" % property_name
 
-    if property_value is not None:
+    if property_value:
         assert Validator.validate_property(property_value, property_name), '%s is not a valid value for %s' % \
                                                                            (str(property_value), property_name)
 
