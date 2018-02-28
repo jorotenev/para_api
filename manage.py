@@ -50,6 +50,7 @@ def _create_expenses_table_no_ctx():
         print("creating dynamodb table [%s]" % table_name)
         create_table_sync(dynamodb_resource=db_facade.raw_db,
                           table_name=table_name,
+                          silent_if_existing=False,
                           **dynamodb_users_table_init_information)
         print("ok")
 
