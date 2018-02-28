@@ -54,6 +54,9 @@ class ExpenseConverter(object):
         for key, value in copy.items():
             if type(value) in [int, float]:
                 copy[key] = self.convertNumberToDbFormat(str(value))
+        if len(copy['tags']) == 0:
+            # dynamodb doesn't accept empty lists
+            del copy['tags']
 
         return copy
 
@@ -62,6 +65,8 @@ class ExpenseConverter(object):
         for key, value in copy.items():
             if isinstance(value, Decimal):
                 copy[key] = self.convertNumberFromDbFormat(value)
+        if 'tags' not in copy:
+            copy['tags'] = []
         return copy
 
     def convertNumberToDbFormat(self, num):
@@ -137,7 +142,7 @@ class __DbFacade(object):
         self.raw_db = raw_db
         self.expenses_table = raw_db.Table(self.EXPENSES_TABLE_NAME)
 
-    @deadline(1, "Fail fast. DB health check failed. Is the table created and is the db reachable?")
+    @deadline(3, "Fail fast. DB health check failed. Is the table created and is the db reachable?")
     def ping_db(self, db):
 
         """
