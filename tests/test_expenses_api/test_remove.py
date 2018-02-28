@@ -14,7 +14,7 @@ valid_payload = SINGLE_EXPENSE.copy()
 
 class TestDeleteAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
     def test_auth(self):
-        resp = self.delete(url=endpoint, data=valid_payload.copy())
+        resp = self.post(url=endpoint, data=valid_payload.copy())
         self.assertEqual(403, resp.status_code)
 
 
@@ -24,7 +24,7 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerM
     def test_normal_usage(self, mocked_db):
         mocked_db.remove.return_value = None
 
-        raw_resp = self.delete(url=endpoint, data=valid_payload)
+        raw_resp = self.post(url=endpoint, data=valid_payload)
 
         self.assertTrue(mocked_db.remove.called)
         self.assertEqual(200, raw_resp.status_code)
@@ -32,7 +32,7 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerM
     def test_404_on_non_existing_expense(self, mocked_db):
         mocked_db.remove.side_effect = NoExpenseWithThisId()
         to_delete = sample_expenses[0].copy()
-        raw_resp = self.delete(url=endpoint, data=to_delete)
+        raw_resp = self.post(url=endpoint, data=to_delete)
         self.assertEqual(404, raw_resp.status_code)
 
         self.assertIn(ApiError.NO_EXPENSE_WITH_THIS_ID, raw_resp.get_data(as_text=True))
@@ -45,7 +45,7 @@ class TestRemove(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerM
         invalid_expenses.append({**sample_expenses[0], 'id': ''})
 
         for invalid_expense in invalid_expenses:
-            raw_resp = self.delete(url=endpoint, data=invalid_expense)
+            raw_resp = self.post(url=endpoint, data=invalid_expense)
             self.assertEqual(400, raw_resp.status_code)
             self.assertFalse(mocked_db.remove.called)
             mocked_db.remove.reset_mock()
@@ -56,7 +56,7 @@ class TestRemoveAndDbFacade(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthentica
     def test_normal_usage(self, mocked_db: type(db_facade)):
         mocked_db.remove.return_value = True
         exp = SINGLE_EXPENSE.copy()
-        self.delete(url=endpoint, data=exp)
+        self.post(url=endpoint, data=exp)
         self.assertTrue(mocked_db.remove.called)
         call_args, call_kwargs = mocked_db.remove.call_args
         self.assertDictEqual({
