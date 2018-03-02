@@ -69,3 +69,14 @@ class TestPersist(DbTestBase):
         persisted = sample_expenses[0].copy()
         persisted['id'] = None
         self.assertRaises(ItemWithSameRangeKeyExists, self.facade.persist, persisted, self.firebase_uid)
+
+    def test_empty_name(self):
+        to_persist = sample_expenses[0].copy()
+        to_persist['id'] = None
+        to_persist['name'] = ''
+        persisted = self.facade.persist(to_persist, self.firebase_uid)
+
+        last = self.facade.get_list(property_value=None, user_uid=self.firebase_uid, batch_size=1)[0]
+        assert persisted['id'], last['id']
+
+        self.assertEqual("", last['name'])

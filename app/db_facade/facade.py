@@ -57,7 +57,8 @@ class ExpenseConverter(object):
         if len(copy['tags']) == 0:
             # dynamodb doesn't accept empty lists
             del copy['tags']
-
+        if not copy['name']:
+            del copy['name']
         return copy
 
     def convertFromDbFormat(self, exp):
@@ -67,6 +68,8 @@ class ExpenseConverter(object):
                 copy[key] = self.convertNumberFromDbFormat(value)
         if 'tags' not in copy:
             copy['tags'] = []
+        if 'name' not in copy:
+            copy['name'] = ''
         return copy
 
     def convertNumberToDbFormat(self, num):

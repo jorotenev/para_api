@@ -101,3 +101,16 @@ class TestUpdate(DbTestBase):
         except Exception as err:
             self.assertIn("no expense at rest found to update or the id of the expense at rest is not the same",
                           str(err))
+
+    @seed_data
+    def test_update_with_empty_name(self):
+        newest = self.seeded_expenses[-1]
+
+        assert newest['name']
+        to_update = {**newest, "name": ""}
+        self.facade.update(to_update, newest, self.firebase_uid)
+
+        updated_newest_from_db = self.facade.get_list(property_value=None, user_uid=self.firebase_uid)[0]
+        assert updated_newest_from_db['id'] == to_update['id']
+
+        self.assertEqual("", updated_newest_from_db['name'])
