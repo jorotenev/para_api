@@ -1,4 +1,6 @@
 import json
+
+from dateutil.parser import parse
 from flask import request, current_app, g
 from werkzeug.exceptions import abort
 
@@ -8,6 +10,7 @@ from app.db_facade import db_facade
 from app.db_facade.facade import MAX_BATCH_SIZE, NoExpenseWithThisId, DynamodbThroughputExhausted
 from app.db_facade.misc import OrderingDirection
 from app.expenses_api.api_error_msgs import ApiError
+from app.helpers.time import ensure_ts_str_ends_with_z
 from app.models.expense_validation import Validator
 from . import expenses_api
 from app.models.json_schema import expense_schema
@@ -212,3 +215,21 @@ def validate_sync_request(request_data):
     assert all(
         [('timestamp_utc_updated' in partial_expense.keys()) for partial_expense in
          request_data.values()]), "the values of the object must be objects with the `timestamp_utc_updated` key"
+
+
+@expenses_api.route("/statistics/<from_dt>/<to_dt>")
+@needs_firebase_uid
+def statistics(from_dt, to_dt):
+    try:
+        assert (parse(to_dt) - parse(from_dt)).total_seconds() <= 60 * 24 * 3600  # 60 days * 24hr/day * 3600 sec/hr
+    except AssertionError:
+        return make_error_response(ApiError.MAXIMUM_TIME_WINDOW_EXCEEDED, status_code=400)
+    except ValueError:
+        return make_error_response(ApiError.INVALID_QUERY_PARAMS, status_code=400)
+
+    from_dt = ensure_ts_str_ends_with_z(from_dt)
+    to_dt = ensure_ts_str_ends_with_z(to_dt)
+
+    result = db_facade.statistics(from_dt=from_dt, to_dt=to_dt, user_uid=request.user_uid)
+
+    return make_json_response(result, 200)

@@ -76,3 +76,21 @@
       ```{"error": "<error msg>"}```
       * `413` if at the moment the server cannot retrieve all of the persisted items of the user and thus cannot process the sync.
 
+
+* __GET__ /statistics/<from_dt_utc:ts>/<to_dt_utc:ts>
+    Returns an object containing the sum of all expenses, grouped by currency. If no expenses in the given time window
+    an empty object will be returned.
+    The time-span of the requested window must be less than two months (60 days).
+    * url params:
+      * `from_dt_utc` - start (inclusive) searching from this datetime. iso8601
+      * `to_dt_utc` - search until then (__exclusive__). iso8601
+
+    * response
+      * `200`
+        ```
+        {
+            "<3-letter-currency-code>" : <number>,
+            ...
+        }
+        ```
+      * `400` - if the requested time-span is more than two months

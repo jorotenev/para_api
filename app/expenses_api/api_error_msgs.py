@@ -2,6 +2,7 @@ from app.db_facade.misc import OrderingDirection
 
 
 class ApiError:
+    MAXIMUM_TIME_WINDOW_EXCEEDED = "Maximum time window exceeded"
     EMPTY_REQUEST_BODY = "Empty request body"
     IDS_OF_EXPENSES_DONT_MATCH = "When updating, the `id` properties of both the updated expense and its previous state must be the same"
     INVALID_BATCH_SIZE = "Received an invalid batch_size. Must be >0 integer."

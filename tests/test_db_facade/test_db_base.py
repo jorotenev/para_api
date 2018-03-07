@@ -45,9 +45,11 @@ class DbTestBase(BaseTest):
 
         return wrapper
 
-    def seedData(self, firebase_uid=None):
+    def seedData(self, firebase_uid=None, items=None):
         from app.models.sample_expenses import sample_expenses
-        valid_items = [exp.copy() for exp in sample_expenses]
+        items_to_use = items or sample_expenses
+
+        valid_items = [exp.copy() for exp in items_to_use]
         firebase_uid = firebase_uid or self.firebase_uid
 
         for exp in valid_items:

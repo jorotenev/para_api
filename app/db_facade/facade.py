@@ -1,6 +1,7 @@
 import uuid
 import warnings
 from decimal import Decimal
+from itertools import groupby
 
 import boto3
 from boto3.dynamodb.conditions import Key, And, Attr
@@ -342,6 +343,44 @@ class __DbFacade(object):
                 raise DynamodbThroughputExhausted()
             else:
                 raise ex
+
+    def statistics(self, from_dt, to_dt, user_uid):
+        query_kwargs = {
+            # **projection_expr_expenseONLY_attrs,
+            "ProjectionExpression": "currency,amount,timestamp_utc",
+            "Select": "SPECIFIC_ATTRIBUTES",
+            "ConsistentRead": False,
+            "ScanIndexForward": False,  # descending order
+            "KeyConditionExpression":
+                And(
+                    Key("timestamp_utc").between(from_dt, to_dt),
+                    Key('user_uid').eq(user_uid)
+                )
+        }
+
+        result = self.expenses_table.query(**query_kwargs)['Items']
+        if result and result[0]['timestamp_utc'] == to_dt:
+            result.pop(0)
+        return self._groupStatisticsItems(result)
+
+    def _groupStatisticsItems(self, items):
+        """
+        [
+            {"currency":"EUR", "amount":10},
+            {"currency":"USD", "amount":20},
+            {"currency":"EUR", "amount":10},
+        ] ===> {"EUR":20, "USD":20}
+        """
+        key = lambda k: k['currency']
+        items.sort(key=key)
+        list_of_dicts = [
+            {currencyName: sum(self.converter.convertNumberFromDbFormat((i['amount'])) for i in itemsOfSameCurrency)}
+            for (currencyName, itemsOfSameCurrency)
+            in groupby(items, key=key)]
+        result = {}
+        for d in list_of_dicts:
+            result.update(d)
+        return result
 
     def _sync_get_items(self, user_uid):
         query_params = {
