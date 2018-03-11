@@ -17,7 +17,7 @@ services:
       - FLASK_DEBUG=0
       - DB_PING_LAZY=True # makes it possible to create an app when the expenses table is empty
       - AWS_DEFAULT_REGION=eu-central-1
-      - AWS_SECRET_ACCESS_KEY=dummy
+      - AWS_SECRET_ACCESS_KEY=dummy # value's not needed, bot env var needs to be set, since a local dynamodb is used.
       - AWS_ACCESS_KEY_ID=dummy
       - SECRET_KEY=dummy
       - LOCAL_DYNAMODB_URL=http://dynamodb:8000
