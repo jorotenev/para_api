@@ -1,2 +1,2 @@
-FROM kennethreitz/pipenv
+FROM kennethreitz/pipenv:latest
 COPY . /app
