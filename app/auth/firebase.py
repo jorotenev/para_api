@@ -53,5 +53,5 @@ class FirebaseTokenValidator(object):
             # https://firebase.google.com/docs/auth/admin/verify-id-tokens
             user = verify_id_token(id_token)
             return user['uid']
-        except ValueError:
+        except ValueError as err:
             raise FirebaseTokenValidator.FirebaseIdTokenValidationExc()
