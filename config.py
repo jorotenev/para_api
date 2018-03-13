@@ -9,7 +9,7 @@ class BaseConfig(object):
     EXPENSES_API_VERSION = 'v1'
     APP_STAGE = os.environ['APP_STAGE']
 
-    FIREBASE_CONFIG_JSON = os.environ['FIREBASE_CONFIG_JSON_BASE64']
+    FIREBASE_CONFIG_JSON_BASE64 = os.environ.get('FIREBASE_CONFIG_JSON_BASE64', '')
     ROLLBAR_CLIENT_TOKEN = os.environ.get('ROLLBAR_CLIENT_TOKEN', '')
     # if true, the contents of `CUSTOM_AUTH_HEADER_NAME` will be treated as readily validated and extracted firebase uid
     # if false, the contents of CUSTOM_AUTH_HEADER_NAME will be validated via the firebase admin sdk and a firebase user uid
