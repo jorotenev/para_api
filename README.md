@@ -1,5 +1,12 @@
 [![CircleCI](https://circleci.com/gh/jorotenev/para_api.svg?style=svg&circle-token=87228e3b9fad968994016a48fda0eb636bfc6491)](https://circleci.com/gh/jorotenev/para_api)
 The backend for the [para mobile app](https://github.com/jorotenev/para)
+
+Key parts:
+* `app/expenses_api/views.py` - the endpoints which the clients of this API use. See `app/expenses_api/README.md`
+for documentation of the API
+* `app/db_facade/facade.py` - singleton facade. Interface to the underlying db (currently DynamoDB)
+* `app/auth/firebase.py` - given a [id tokens](https://firebase.google.com/docs/auth/admin/verify-id-tokens), extract the user uid from it, on each request to protected endpoints
+
 ## Run
 * Install [pipenv](https://github.com/pypa/pipenv#installation)
 * `$ pipenv install`
@@ -18,7 +25,7 @@ DOT_ENV_FILE=.env_dev
 FLASK_APP=manage.py # the "new" way flask discovers apps
 FLASK_DEBUG=0 # otherwise python signals don't work
 ```
-* To run the API (see below the Note for PyCharm users)  
+* To run the API (see below the Note for PyCharm users)
 `$ flask run --host=0.0.0.0`
 
 #### Note on FIREBASE_CONFIG_JSON_BASE64:
