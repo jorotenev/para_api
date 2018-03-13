@@ -1,8 +1,9 @@
 import os
-
-import flask
+import warnings
 import rollbar
 from flask import Flask, got_request_exception, Request
+
+from config import EnvironmentName
 
 
 def _base_app(config_name):
@@ -56,15 +57,21 @@ def create_app(config_name):
 
 
 def init_rollbar(app):
-    from config import EnvironmentName
-
+    rollbar_token_env = 'ROLLBAR_CLIENT_TOKEN'
     stage = app.config.get("APP_STAGE")
+
+    if not app.config.get(rollbar_token_env, False):
+        if stage not in [EnvironmentName.staging, EnvironmentName.production]:
+            warnings.warn("ROLLBAR_CLIENT_TOKEN is not set. Rollbar will not be used")
+            return
+        else:
+            raise Exception("ROLLBAR_CLIENT_TOKEN is required in stage %s" % stage)
 
     rollbar.init(
         # access token for the demo app: https://rollbar.com/demo
-        app.config['ROLLBAR_CLIENT_TOKEN'],
+        app.config[rollbar_token_env],
         # environment name
-        app.config.get('APP_STAGE'),
+        stage,
         # server root directory, makes tracebacks prettier
         root=os.path.dirname(os.path.realpath(__file__)),
         # flask already sets up logging

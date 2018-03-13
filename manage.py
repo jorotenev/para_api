@@ -4,7 +4,6 @@ import sys
 from os.path import dirname, join
 from dotenv import load_dotenv
 
-from app.helpers.time import ensure_ts_str_ends_with_z
 
 if os.environ.get("ENV_DOT_FILE"):
     dotenv_path = join(dirname(__file__), os.environ.get("ENV_DOT_FILE"))  # will fail silently if file is missing
@@ -81,6 +80,8 @@ def _seed_data_no_ctx(firebase_uid=None):
         import uuid, datetime
         from app.db_facade.facade import db_facade
         from flask import current_app
+        from app.helpers.time import ensure_ts_str_ends_with_z
+
         firebase_uid = firebase_uid or current_app.config['DUMMY_FIREBASE_UID']
         assert firebase_uid
 
