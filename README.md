@@ -18,7 +18,7 @@ DOT_ENV_FILE=.env_dev
 FLASK_APP=manage.py # the "new" way flask discovers apps
 FLASK_DEBUG=0 # otherwise python signals don't work
 ```
-* To run the API (see below the Note for PyCharm users)
+* To run the API (see below the Note for PyCharm users)  
 `$ flask run --host=0.0.0.0`
 
 #### Note on FIREBASE_CONFIG_JSON_BASE64:
