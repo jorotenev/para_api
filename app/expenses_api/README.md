@@ -58,6 +58,7 @@
 
          {
            "<expense.id>" : {
+                        "timestamp_utc":"<ts>",
                         "timestamp_utc_updated":"<ts>"
             },*
          }

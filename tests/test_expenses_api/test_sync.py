@@ -1,18 +1,21 @@
+from flask import current_app
+
 from tests.base_test import BaseTestWithHTTPMethodsMixin, BaseTest, NoAuthenticationMarkerMixin
 
-from json import loads, dumps
-from unittest.mock import patch
+from json import loads
+from unittest.mock import patch, PropertyMock
+from app.db_facade.facade import db_facade as non_mocked_facade
 
 from app.db_facade.facade import DynamodbThroughputExhausted
 from app.helpers.time import utc_now_str
 from app.models.expense_validation import Validator
 from app.models.sample_expenses import sample_expenses
 from tests.common_methods import SINGLE_EXPENSE
-from tests.test_db_facade.test_sync import generate_sync_request
+from tests.test_db_facade.test_sync import generate_sync_request, generate_expenses
 from tests.test_expenses_api import db_facade_path
 
 endpoint = 'expenses_api.sync'
-valid_payload = generate_sync_request()
+valid_payload = generate_sync_request(expenses=sample_expenses)
 
 
 class TestSyncAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
@@ -60,3 +63,17 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
             mocked_db.sync.side_effect = err
             raw_resp = self.post(url=endpoint, data=valid_payload)
             self.assertEqual(expected_code, raw_resp.status_code)
+
+    def test_exceeded_max_request_size(self, facade_mock):
+        from app.expenses_api.api_error_msgs import ApiError
+
+        # https://docs.python.org/3/library/unittest.mock.html#unittest.mock.PropertyMock
+        type(facade_mock).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
+        
+        items = generate_expenses(100)
+        payload = generate_sync_request(items)
+        max_size = current_app.config['MAX_SYNC_REQUEST_SIZE']
+        assert len(payload) > max_size
+
+        response = self.post(url=endpoint, data=payload)
+        self.assertIn(ApiError.BATCH_SIZE_EXCEEDED % max_size, response.get_data(as_text=True))

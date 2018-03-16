@@ -120,12 +120,14 @@ class __DbFacade(object):
     RANGE_KEY = range_key
     EXPENSES_TABLE_NAME = EXPENSES_TABLE_NAME_PREFIX
 
+    DEFAULT_ORDERING = OrderingDirection.desc
     converter = ExpenseConverter()
     reserved_dynamodb_words = ['name']
 
     def __init__(self):
         self.expenses_table = None
         self.lazy_ping = False
+        self.max_sync_request_size = 10  # default. overridden in init_app()
 
     def init_app(self, app):
         global raw_db
@@ -145,6 +147,7 @@ class __DbFacade(object):
         self.ping_db(raw_db)
         self.raw_db = raw_db
         self.expenses_table = raw_db.Table(self.EXPENSES_TABLE_NAME)
+        self.max_sync_request_size = app.config['MAX_SYNC_REQUEST_SIZE']
 
     @deadline(3, "Fail fast. DB health check failed. Is the table created and is the db reachable?")
     def ping_db(self, db):
@@ -186,14 +189,16 @@ class __DbFacade(object):
                  property_value,
                  user_uid,
                  property_name='timestamp_utc',
-                 ordering_direction: OrderingDirection = OrderingDirection.desc,
-                 batch_size=25):
+                 ordering_direction: OrderingDirection = DEFAULT_ORDERING,
+                 batch_size=25,
+                 inclusive_start=False):
         """
         :param property_value:  the value of the property `property_name`. could be None
         :param property_name: which expense property to use as sort key
         :param user_uid:
         :param ordering_direction: OrderingDirection instance
         :param batch_size: int
+        :param inclusive_start - only valid if property_value is set. if true, `property_value` will be included in the results
         :return: list of expense objects
 
         :raises UnindexedPropertySelected if `property_name` is not a property that can be used to query
@@ -225,9 +230,11 @@ class __DbFacade(object):
             # e.g. if querying via timestamp_utc, desc - search will start from the newest items
             query_kwargs['KeyConditionExpression'] = Key(self.HASH_KEY).eq(user_uid)
         else:
-            # e.g. if querying via timestamp_utc, desc - search will start from the given property_value
-            sort_key_cond = Key(property_name).gt if ordering_direction is OrderingDirection.asc else Key(
-                property_name).lt
+            greater = Key(property_name).gte if inclusive_start else Key(property_name).gt
+            less = Key(property_name).lte if inclusive_start else Key(property_name).lt
+
+            # e.g. if querying via timestamp_utc, desc - search will start(exclusive) from the given property_value
+            sort_key_cond = greater if ordering_direction is OrderingDirection.asc else less
 
             query_kwargs['KeyConditionExpression'] = And(Key(self.HASH_KEY).eq(user_uid), sort_key_cond(property_value))
 
@@ -330,7 +337,7 @@ class __DbFacade(object):
             raise RuntimeError("Invalid application state. a LSI with `id` as RANGE key is required for /sync")
 
         try:
-            items = self._sync_get_items(user_uid)
+            items = self._sync_get_items(user_uid, sync_request_objs)
             result = self._sync_process_items(items, sync_request_objs)
             convert = self.converter.convertFromDbFormat
 
@@ -382,33 +389,19 @@ class __DbFacade(object):
             result.update(d)
         return result
 
-    def _sync_get_items(self, user_uid):
-        query_params = {
-            **projection_expr_expenseONLY_attrs,
-            "IndexName": index_for_property['id'],
-            "TableName": self.EXPENSES_TABLE_NAME,
-            "Select": 'SPECIFIC_ATTRIBUTES',
-            "Limit": 1000,
-            "ConsistentRead": False,
-            "KeyConditionExpression": Key(self.HASH_KEY).eq(user_uid)
-        }
-
-        # key is expense `id`, value is the whole expense
-        retrieved_items = {}
-        try_again = True
-        while try_again:
-            resp = self.expenses_table.query(
-                **query_params
-            )
-            for exp in resp['Items']:
-                retrieved_items[exp['id']] = exp
-
-            if 'LastEvaluatedKey' in resp:
-                query_params['LastEvaluatedKey'] = resp['LastEvaluatedKey']
-            else:
-                try_again = False
-
-        return retrieved_items
+    def _sync_get_items(self, user_uid, request_objects):
+        choose = max if self.DEFAULT_ORDERING is OrderingDirection.desc else min
+        start_timestamp = choose([exp['timestamp_utc'] for exp in request_objects.values()])
+        from_db = self.get_list(user_uid=user_uid,
+                                property_name='timestamp_utc',
+                                property_value=None,
+                                ordering_direction=self.DEFAULT_ORDERING,
+                                batch_size=self.max_sync_request_size,
+                                )
+        result = {}
+        for exp in from_db:
+            result[exp['id']] = exp
+        return result
 
     def _sync_process_items(self, items_from_db, request_objects):
         """

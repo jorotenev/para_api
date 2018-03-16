@@ -212,9 +212,12 @@ def sync():
 
 def validate_sync_request(request_data):
     assert isinstance(request_data, dict), 'expected an object as payload.'
+    assert len(request_data) <= db_facade.max_sync_request_size, \
+        ApiError.BATCH_SIZE_EXCEEDED % db_facade.max_sync_request_size
     assert all(
-        [('timestamp_utc_updated' in partial_expense.keys()) for partial_expense in
-         request_data.values()]), "the values of the object must be objects with the `timestamp_utc_updated` key"
+        [((expected_key in partial_expense.keys()) for expected_key in ['timestamp_utc', 'timestamp_utc_updated']) for
+         partial_expense in
+         request_data.values()]), "the values of the object must be objects with the `timestamp_utc_updated` and `timestamp_utc` keys"
 
 
 @expenses_api.route("/statistics/<from_dt>/<to_dt>")

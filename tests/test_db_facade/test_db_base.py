@@ -1,3 +1,7 @@
+"""
+No actual tests here.
+Sets up the base test class, which will be subclassed by actual tests.
+"""
 from tests.base_test import BaseTest
 
 from app.db_facade import db_facade, dynamodb_users_table_init_information
