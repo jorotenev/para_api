@@ -28,6 +28,8 @@ class TestSyncAuth(BaseTest, BaseTestWithHTTPMethodsMixin):
 class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMixin):
 
     def test_normal_usage(self, mocked_db):
+        type(mocked_db).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
+
         mocked_db.sync.return_value = {
             'to_remove': ['some uuid'],
             'to_add': [SINGLE_EXPENSE],
@@ -43,7 +45,9 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
         self.assertTrue(all([Validator.validate_expense_simple(exp) for exp in json['to_update']]))
         self.assertTrue(all([type(e) == str for e in json['to_remove']]))
 
-    def test_fails_on_invalid_payload(self, _):
+    def test_fails_on_invalid_payload(self, mocked_db):
+        type(mocked_db).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
+
         invalid_payloads = [
             [{"timestamp_utc_updated": 'invalid ts', 'id': 'valid id'}],
             [{"timestamp_utc_updated": utc_now_str(), 'id': None}],  # valid ts invalid id
@@ -55,6 +59,8 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
             self.assertEqual(raw_resp.status_code, 400)
 
     def test_correct_resp_code_on_facade_failing(self, mocked_db):
+        type(mocked_db).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
+
         requests = [
             (RuntimeError(), 500),
             (DynamodbThroughputExhausted(), 413)
@@ -64,12 +70,11 @@ class TestSync(BaseTest, BaseTestWithHTTPMethodsMixin, NoAuthenticationMarkerMix
             raw_resp = self.post(url=endpoint, data=valid_payload)
             self.assertEqual(expected_code, raw_resp.status_code)
 
-    def test_exceeded_max_request_size(self, facade_mock):
+    def test_exceeded_max_request_size(self, mocked_db):
         from app.expenses_api.api_error_msgs import ApiError
-
         # https://docs.python.org/3/library/unittest.mock.html#unittest.mock.PropertyMock
-        type(facade_mock).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
-        
+        type(mocked_db).max_sync_request_size = PropertyMock(return_value=non_mocked_facade.max_sync_request_size)
+
         items = generate_expenses(100)
         payload = generate_sync_request(items)
         max_size = current_app.config['MAX_SYNC_REQUEST_SIZE']

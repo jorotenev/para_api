@@ -323,7 +323,7 @@ class __DbFacade(object):
 
         :param sync_request_objs: a dict with expense `id` as a key and a dict with a key `timestamp_utc_updated` as value
         {
-            "some-expense-id": {"timestamp_utc_updated": "some-ts"},
+            "some-expense-id": {"timestamp_utc_updated": "<iso8601>", "timestamp_utc_updated": "<iso8601>"},
             ...
         }
         :return: dict with keys "to_add", "to_remove", "to_update".
