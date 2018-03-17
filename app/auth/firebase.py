@@ -74,4 +74,5 @@ class FirebaseTokenValidator(object):
             user = verify_id_token(id_token)
             return user['uid']
         except ValueError as err:
+            current_app.logger.error(str(err))
             raise FirebaseTokenValidator.FirebaseIdTokenValidationExc()
