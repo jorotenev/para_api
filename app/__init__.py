@@ -3,9 +3,6 @@ import warnings
 import rollbar
 from flask import Flask, got_request_exception, Request
 
-from config import EnvironmentName
-
-
 def _base_app(config_name):
     """
     initialise a barebone flask app.
@@ -57,6 +54,8 @@ def create_app(config_name):
 
 
 def init_rollbar(app):
+    from config import EnvironmentName
+
     rollbar_token_env = 'ROLLBAR_CLIENT_TOKEN'
     stage = app.config.get("APP_STAGE")
 

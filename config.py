@@ -25,6 +25,9 @@ class BaseConfig(object):
     CUSTOM_AUTH_HEADER_NAME = "x-firebase-auth-token"
     MAX_EXECUTION_TIME = 3  # lambda consideration
 
+    # https://github.com/jorotenev/para_api/issues/1
+    MAX_SYNC_REQUEST_SIZE = 15
+
     @classmethod
     def init_app(cls, app):
         pass
