@@ -366,7 +366,8 @@ class __DbFacade(object):
         }
 
         result = self.expenses_table.query(**query_kwargs)['Items']
-        if result and result[0]['timestamp_utc'] == to_dt:
+        if result and result[0][
+            'timestamp_utc'] == to_dt:  # simulate exclusive lte (between() is inclusive on both sides)
             result.pop(0)
         return self._groupStatisticsItems(result)
 
@@ -380,10 +381,16 @@ class __DbFacade(object):
         """
         key = lambda k: k['currency']
         items.sort(key=key)
+
+        def shrt_num(x): return float("%.2f" % x)
+
         list_of_dicts = [
-            {currencyName: sum(self.converter.convertNumberFromDbFormat((i['amount'])) for i in itemsOfSameCurrency)}
+            {
+                currencyName:
+                    shrt_num(sum(self.converter.convertNumberFromDbFormat((i['amount'])) for i in itemsOfSameCurrency))}
             for (currencyName, itemsOfSameCurrency)
-            in groupby(items, key=key)]
+            in groupby(items, key=key)
+        ]
         result = {}
         for d in list_of_dicts:
             result.update(d)
